@@ -30,6 +30,35 @@ class MainUI(QMainWindow):
     def gr_konk(self):
         gr_konk = QSqlTableModel()
         gr_konk.setTable('gr_konk')
+
+        sql_request = """UPDATE gr_konk
+       SET `Кол-во НИР` = query1.count_nir
+       FROM (
+            SELECT "Код конк." as code_konk, COUNT("Код НИР") AS count_nir
+            FROM "Gr_prog"
+            GROUP BY "Код конк."
+            ) AS query1
+        WHERE gr_konk.`Код конк.` = query1.code_konk;"""
+
+        sql_request2 ="""UPDATE gr_konk
+        SET `План. объем финанс-я` = query1.sum_fin
+       FROM (
+            SELECT "Код конк." as code_konk, SUM("План. объём финанс-я") AS sum_fin
+            FROM Gr_prog
+            GROUP BY "Код конк."
+            ) AS query1
+        WHERE gr_konk.`Код конк.` = query1.code_konk;"""
+
+        query = QSqlQuery()
+        query.exec(sql_request)
+        query.exec(sql_request2)
+
+        if query.lastError().type() == QSqlError.ErrorType.NoError:
+            print('Successfully updated!')
+        else:
+            print('Not executed:', query.lastError().text())
+
+
         gr_konk.select()
         self.tableView.setSortingEnabled(True)
         self.tableView.setModel(gr_konk)
