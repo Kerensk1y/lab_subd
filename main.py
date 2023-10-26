@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget,QHeaderView
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView
 from PyQt6 import uic
 from PyQt6.uic import loadUi
 from PyQt6.QtSql import *
@@ -6,7 +6,8 @@ import sys
 from PyQt6.uic.properties import QtWidgets
 from EditForm import Ui_EditWindow
 from AddForm import Ui_AddWindow
-db_name = 'databases/MyDb.db'
+
+db_name = 'MyDb.db'
 
 
 class MainUI(QMainWindow):
@@ -30,12 +31,9 @@ class MainUI(QMainWindow):
         self.wEdit = EditUI(parent=self)
         self.wEdit.show()
 
-
     def open_window_add(self):
         self.wAdd = AddUI(parent=self)
         self.wAdd.show()
-
-
 
     def Gr_prog(self):
         Gr_prog = QSqlTableModel()
@@ -65,9 +63,27 @@ class MainUI(QMainWindow):
                     ) AS query1
                 WHERE gr_konk.`Код конк.` = query1.code_konk;"""
 
+        sql_request_kv1 = """UPDATE "gr_konk"
+SET "1 кв-л" = (SELECT SUM("1 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
+        sql_request_kv2 = """UPDATE "gr_konk"
+        SET "1 кв-л" = (SELECT SUM("2 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
+        sql_request_kv3 = """UPDATE "gr_konk"
+        SET "1 кв-л" = (SELECT SUM("3 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
+        sql_request_kv4 = """UPDATE "gr_konk"
+        SET "1 кв-л" = (SELECT SUM("4 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
+
+        sql_request_fact_fin = """UPDATE "gr_konk"
+SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв-л" + "4 кв-л";
+"""
+
         query = QSqlQuery()
         query.exec(sql_request)
         query.exec(sql_request2)
+        query.exec(sql_request_kv1)
+        query.exec(sql_request_kv2)
+        query.exec(sql_request_kv3)
+        query.exec(sql_request_kv4)
+        query.exec(sql_request_fact_fin)
 
         if query.lastError().type() == QSqlError.ErrorType.NoError:
             print('Successfully updated!')
@@ -103,14 +119,16 @@ class MainUI(QMainWindow):
     else:
         print("connection ok")
 
+
 class AddUI(QMainWindow):
     def __init__(self, parent):
         super(AddUI, self).__init__()
         self.ui = Ui_AddWindow()
         self.ui.setupUi(self)
         self.parent = parent
-        #self.setAttribute(Qt.WidgetAttribute.)
+        # self.setAttribute(Qt.WidgetAttribute.)
         self.setWindowTitle("Добавление НИР")
+
 
 class EditUI(QMainWindow):
     def __init__(self, parent):
@@ -118,7 +136,7 @@ class EditUI(QMainWindow):
         self.ui = Ui_EditWindow()
         self.ui.setupUi(self)
         self.parent = parent
-        #self.setAttribute(Qt.WidgetAttribute.)
+        # self.setAttribute(Qt.WidgetAttribute.)
         self.setWindowTitle("Редактирование НИР")
 
 
