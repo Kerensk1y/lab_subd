@@ -1,0 +1,1 @@
+venv\Scripts\pyuic6.exe -x MainForm.ui -o MainForm.py

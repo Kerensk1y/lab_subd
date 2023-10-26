@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>DataWindow</class>
- <widget class="QMainWindow" name="DataWindow">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="windowModality">
+   <enum>Qt::WindowModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>975</width>
-    <height>781</height>
+    <width>1083</width>
+    <height>845</height>
    </rect>
   </property>
   <property name="font">
@@ -15,154 +18,169 @@
     <pointsize>10</pointsize>
    </font>
   </property>
+  <property name="focusPolicy">
+   <enum>Qt::WheelFocus</enum>
+  </property>
   <property name="windowTitle">
    <string>MainWindow</string>
+  </property>
+  <property name="layoutDirection">
+   <enum>Qt::LeftToRight</enum>
+  </property>
+  <property name="autoFillBackground">
+   <bool>false</bool>
   </property>
   <property name="styleSheet">
    <string notr="true"/>
   </property>
+  <property name="toolButtonStyle">
+   <enum>Qt::ToolButtonTextOnly</enum>
+  </property>
+  <property name="tabShape">
+   <enum>QTabWidget::Triangular</enum>
+  </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QTableView" name="tableView">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>40</y>
-      <width>901</width>
-      <height>531</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <underline>false</underline>
-     </font>
-    </property>
-    <property name="contextMenuPolicy">
-     <enum>Qt::CustomContextMenu</enum>
-    </property>
-    <property name="acceptDrops">
-     <bool>true</bool>
-    </property>
-    <property name="layoutDirection">
-     <enum>Qt::LeftToRight</enum>
-    </property>
-    <property name="frameShape">
-     <enum>QFrame::StyledPanel</enum>
-    </property>
-    <property name="frameShadow">
-     <enum>QFrame::Sunken</enum>
-    </property>
-    <property name="horizontalScrollBarPolicy">
-     <enum>Qt::ScrollBarAlwaysOff</enum>
-    </property>
-    <property name="sizeAdjustPolicy">
-     <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
-    </property>
-    <attribute name="horizontalHeaderCascadingSectionResizes">
-     <bool>false</bool>
-    </attribute>
-   </widget>
-   <widget class="QLabel" name="label">
-    <property name="geometry">
-     <rect>
-      <x>650</x>
-      <y>0</y>
-      <width>247</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>Times New Roman</family>
-      <pointsize>16</pointsize>
-      <weight>50</weight>
-      <bold>false</bold>
-     </font>
-    </property>
-    <property name="autoFillBackground">
-     <bool>false</bool>
-    </property>
-    <property name="text">
-     <string>Таблица базы данных</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="Edit">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>580</y>
-      <width>141</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Редактирование</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="Add">
-    <property name="geometry">
-     <rect>
-      <x>180</x>
-      <y>580</y>
-      <width>121</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Добавить</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="Delete">
-    <property name="geometry">
-     <rect>
-      <x>800</x>
-      <y>590</y>
-      <width>101</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Удалить</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="Resetfilters">
-    <property name="geometry">
-     <rect>
-      <x>500</x>
-      <y>610</y>
-      <width>211</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Сбросить все фильтры</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="Sorting">
-    <property name="geometry">
-     <rect>
-      <x>310</x>
-      <y>580</y>
-      <width>151</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Сортировка</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="Filter">
-    <property name="geometry">
-     <rect>
-      <x>540</x>
-      <y>580</y>
-      <width>121</width>
-      <height>31</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Фильтр</string>
-    </property>
-   </widget>
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0" colspan="3">
+     <widget class="QTableView" name="tableView">
+      <property name="font">
+       <font>
+        <underline>false</underline>
+       </font>
+      </property>
+      <property name="cursor" stdset="0">
+       <cursorShape>UpArrowCursor</cursorShape>
+      </property>
+      <property name="focusPolicy">
+       <enum>Qt::ClickFocus</enum>
+      </property>
+      <property name="contextMenuPolicy">
+       <enum>Qt::DefaultContextMenu</enum>
+      </property>
+      <property name="acceptDrops">
+       <bool>true</bool>
+      </property>
+      <property name="layoutDirection">
+       <enum>Qt::LeftToRight</enum>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Sunken</enum>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOn</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOn</enum>
+      </property>
+      <property name="sizeAdjustPolicy">
+       <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
+      </property>
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::SingleSelection</enum>
+      </property>
+      <property name="selectionBehavior">
+       <enum>QAbstractItemView::SelectRows</enum>
+      </property>
+      <property name="sortingEnabled">
+       <bool>true</bool>
+      </property>
+      <attribute name="horizontalHeaderCascadingSectionResizes">
+       <bool>true</bool>
+      </attribute>
+      <attribute name="verticalHeaderCascadingSectionResizes">
+       <bool>true</bool>
+      </attribute>
+     </widget>
+    </item>
+    <item row="5" column="0">
+     <widget class="QPushButton" name="Delete">
+      <property name="text">
+       <string>Удалить</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1">
+     <widget class="QPushButton" name="Filter">
+      <property name="text">
+       <string>Фильтр</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="2">
+     <widget class="QLabel" name="label">
+      <property name="font">
+       <font>
+        <pointsize>14</pointsize>
+       </font>
+      </property>
+      <property name="layoutDirection">
+       <enum>Qt::LeftToRight</enum>
+      </property>
+      <property name="text">
+       <string>Сортировка по:</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="2">
+     <widget class="QComboBox" name="sortingbox">
+      <property name="focusPolicy">
+       <enum>Qt::TabFocus</enum>
+      </property>
+      <item>
+       <property name="text">
+        <string comment="0"/>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Код конкурса + Код Нир</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Название ВУЗа</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <selectedon>:/newPrefix/MainMenu.py</selectedon>
+        </iconset>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>Плановый об. гранта</string>
+       </property>
+      </item>
+     </widget>
+    </item>
+    <item row="4" column="1">
+     <widget class="QPushButton" name="Resetfilters">
+      <property name="text">
+       <string>Сбросить все фильтры</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="0">
+     <widget class="QPushButton" name="Edit">
+      <property name="text">
+       <string>Редактирование</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0">
+     <widget class="QPushButton" name="Add">
+      <property name="text">
+       <string>Добавить</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QMenuBar" name="menubar">
@@ -170,11 +188,11 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>975</width>
-     <height>18</height>
+     <width>1083</width>
+     <height>26</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menu_1">
+   <widget class="QMenu" name="menudata">
     <property name="title">
      <string>Данные</string>
     </property>
@@ -182,32 +200,33 @@
     <addaction name="Table_gr_konk"/>
     <addaction name="Table_VUZ"/>
    </widget>
-   <widget class="QMenu" name="menu_2">
+   <widget class="QMenu" name="menuanalysis">
     <property name="title">
      <string>Анализ</string>
     </property>
    </widget>
-   <widget class="QMenu" name="menu_3">
+   <widget class="QMenu" name="menufinance">
     <property name="title">
      <string>Финансирование</string>
     </property>
    </widget>
-   <widget class="QMenu" name="menu">
+   <widget class="QMenu" name="menuhelp">
     <property name="title">
      <string>Помощь</string>
     </property>
-    <addaction name="action"/>
+    <addaction name="help_about"/>
    </widget>
-   <widget class="QMenu" name="menu_4">
+   <widget class="QMenu" name="menuexit">
     <property name="title">
      <string>Выход</string>
     </property>
+    <addaction name="action_exit"/>
    </widget>
-   <addaction name="menu_1"/>
-   <addaction name="menu_2"/>
-   <addaction name="menu_3"/>
-   <addaction name="menu"/>
-   <addaction name="menu_4"/>
+   <addaction name="menudata"/>
+   <addaction name="menuanalysis"/>
+   <addaction name="menufinance"/>
+   <addaction name="menuhelp"/>
+   <addaction name="menuexit"/>
   </widget>
   <action name="Table_Gr_prog">
    <property name="text">
@@ -224,12 +243,19 @@
     <string>Информация по ВУЗам</string>
    </property>
   </action>
-  <action name="action">
+  <action name="help_about">
    <property name="text">
     <string>Справка по программе</string>
    </property>
   </action>
+  <action name="action_exit">
+   <property name="text">
+    <string>Выйти из приложения</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="sorting.qrc"/>
+ </resources>
  <connections/>
 </ui>

@@ -1,0 +1,1 @@
+venv\Scripts\pyuic6.exe -x AddForm.ui -o AddForm.py
