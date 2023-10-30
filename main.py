@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView, QMessageBox,QAbstractItemView
+from PyQt6.QtCore import QModelIndex
 from PyQt6 import uic
 from PyQt6.uic import loadUi
 from PyQt6.QtSql import *
@@ -7,7 +8,7 @@ from PyQt6.uic.properties import QtWidgets
 from EditForm import Ui_EditWindow
 from AddForm import Ui_AddWindow
 from PyQt6.QtWidgets import QDialog, QFormLayout, QLabel, QLineEdit, QPushButton
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
 from typing import List
 
 
@@ -29,6 +30,31 @@ class MainUI(QMainWindow):
         self.action_exit.triggered.connect(self.exit)
         self.Edit.clicked.connect(self.open_window_edit)
         self.Add.clicked.connect(self.open_window_add)
+        self.Delete.clicked.connect(self.delete_selected_row)
+
+    def delete_selected_row(self):
+        selected_row = self.tableView.selectionModel().currentIndex().row()
+        if selected_row >= 0:
+            # Ask for confirmation
+            confirmation = QMessageBox.question(
+                self,
+                "Подтвердите действие",
+                "Вы уверены, что хотите удалить запись?",
+                buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+
+            if confirmation == QMessageBox.StandardButton.Yes:
+                model = self.tableView.model()
+                model.removeRow(selected_row)
+                if model.submitAll():
+                    QMessageBox.information(self, 'Успешно', 'Запись удалена.')
+                else:
+                    QMessageBox.warning(self, 'Ошибка', 'Не удалось удалить запись.')
+            else:
+                # User chose not to delete the record
+                QMessageBox.information(self, 'Отмена', 'Запись не удалена.')
+        else:
+            QMessageBox.warning(self, 'Ошибка', 'Ни одна строка не выбрана для удаления.')
 
     def open_window_edit(self):
         self.wEdit = EditUI(parent=self)
@@ -106,6 +132,9 @@ SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв
     def exit(self):
         sys.exit(-1)
 
+    def test_click(self):
+        print("test ok")
+
     def connect_db(db_name):
         db = QSqlDatabase.addDatabase("QSQLITE")
         db.setDatabaseName(db_name)
@@ -125,11 +154,10 @@ class AddUI(QMainWindow):
         self.ui = Ui_AddWindow()
         self.ui.setupUi(self)
         self.parent = parent
-        # self.setAttribute(Qt.WidgetAttribute.)
         self.setWindowTitle("Добавление НИР")
         self.ui.pushButton.clicked.connect(self.handle_values)
         self.ui.pushButtonClear.clicked.connect(self.clear_input_fields)
-        self.set_default_values()
+        self.fill_comboboxes()
 
     @staticmethod
     def get_unique_values(column: str) -> List:
@@ -142,24 +170,12 @@ class AddUI(QMainWindow):
             unique_values.append(query.value(0))
         return unique_values
 
-    @staticmethod
-    def maxi_nir_code():
-        sql_query = 'SELECT MAX("Код НИР") FROM "Gr_prog"'
-        query = QSqlQuery()
-        query.exec(sql_query)
-        if query.next():
-            suggested_code = query.value(0) + 1
-        print(suggested_code)
-        return suggested_code
-
-    def set_default_values(self):
+    def fill_comboboxes(self):
         tender_codes = [str(code) for code in self.get_unique_values('Код конк.')]
         vuzes = self.get_unique_values('Сокр-е наим-е ВУЗа')
-        suggested_code = self.maxi_nir_code()
 
         self.ui.comboBox_3.addItems(tender_codes)
         self.ui.comboBox_4.addItems(vuzes)
-        self.ui.textEdit.setPlainText(str(suggested_code))
 
     def handle_values(self):
         colnames = [# Comboboxes
@@ -182,10 +198,7 @@ class AddUI(QMainWindow):
         plan_finance = self.ui.textEdit_8.toPlainText()
         grnti_code_1 = self.ui.textEdit_11.toPlainText()
         grnti_code_2 = self.ui.textEdit_10.toPlainText()
-        if grnti_code_2:
-            grnti_code = f"{grnti_code_1},{grnti_code_2}"
-        else:
-            grnti_code = f"{grnti_code_1}"
+        grnti_code = f"{grnti_code_1}, {grnti_code_2}"
         #grnti_code = self.ui.textEdit_3.toPlainText()
         chief_post = self.ui.textEdit_5.toPlainText()
         scientific_rank = self.ui.textEdit_6.toPlainText()
@@ -200,7 +213,6 @@ class AddUI(QMainWindow):
         print(f'{handled_values=}')
 
         self.add_data(handled_values)
-        self.clear_input_fields()
 
     def add_data(self, column_values: dict):
         columns, values = column_values.keys(), column_values.values()
