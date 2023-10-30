@@ -106,9 +106,6 @@ SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв
     def exit(self):
         sys.exit(-1)
 
-    def test_click(self):
-        print("test ok")
-
     def connect_db(db_name):
         db = QSqlDatabase.addDatabase("QSQLITE")
         db.setDatabaseName(db_name)
@@ -186,7 +183,7 @@ class AddUI(QMainWindow):
         grnti_code_1 = self.ui.textEdit_11.toPlainText()
         grnti_code_2 = self.ui.textEdit_10.toPlainText()
         if grnti_code_2:
-            grnti_code = f"{grnti_code_1}, {grnti_code_2}"
+            grnti_code = f"{grnti_code_1},{grnti_code_2}"
         else:
             grnti_code = f"{grnti_code_1}"
         #grnti_code = self.ui.textEdit_3.toPlainText()
