@@ -132,7 +132,7 @@ class AddUI(QMainWindow):
         self.setWindowTitle("Добавление НИР")
         self.ui.pushButton.clicked.connect(self.handle_values)
         self.ui.pushButtonClear.clicked.connect(self.clear_input_fields)
-        self.fill_comboboxes()
+        self.set_default_values()
 
     @staticmethod
     def get_unique_values(column: str) -> List:
@@ -145,12 +145,24 @@ class AddUI(QMainWindow):
             unique_values.append(query.value(0))
         return unique_values
 
-    def fill_comboboxes(self):
+    @staticmethod
+    def maxi_nir_code():
+        sql_query = 'SELECT MAX("Код НИР") FROM "Gr_prog"'
+        query = QSqlQuery()
+        query.exec(sql_query)
+        if query.next():
+            suggested_code = query.value(0) + 1
+        print(suggested_code)
+        return suggested_code
+
+    def set_default_values(self):
         tender_codes = [str(code) for code in self.get_unique_values('Код конк.')]
         vuzes = self.get_unique_values('Сокр-е наим-е ВУЗа')
+        suggested_code = self.maxi_nir_code()
 
         self.ui.comboBox_3.addItems(tender_codes)
         self.ui.comboBox_4.addItems(vuzes)
+        self.ui.textEdit.setPlainText(str(suggested_code))
 
     def handle_values(self):
         colnames = [# Comboboxes
@@ -173,7 +185,10 @@ class AddUI(QMainWindow):
         plan_finance = self.ui.textEdit_8.toPlainText()
         grnti_code_1 = self.ui.textEdit_11.toPlainText()
         grnti_code_2 = self.ui.textEdit_10.toPlainText()
-        grnti_code = f"{grnti_code_1}, {grnti_code_2}"
+        if grnti_code_2:
+            grnti_code = f"{grnti_code_1}, {grnti_code_2}"
+        else:
+            grnti_code = f"{grnti_code_1}"
         #grnti_code = self.ui.textEdit_3.toPlainText()
         chief_post = self.ui.textEdit_5.toPlainText()
         scientific_rank = self.ui.textEdit_6.toPlainText()
