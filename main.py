@@ -1,5 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView, QMessageBox,QAbstractItemView
-from PyQt6.QtCore import QModelIndex
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView, QMessageBox
 from PyQt6 import uic
 from PyQt6.uic import loadUi
 from PyQt6.QtSql import *
@@ -8,9 +7,8 @@ from PyQt6.uic.properties import QtWidgets
 from EditForm import Ui_EditWindow
 from AddForm import Ui_AddWindow
 from PyQt6.QtWidgets import QDialog, QFormLayout, QLabel, QLineEdit, QPushButton
-from PyQt6.QtWidgets import QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
 from typing import List
-
 
 db_name = 'MyDb.db'
 
@@ -132,9 +130,6 @@ SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв
     def exit(self):
         sys.exit(-1)
 
-    def test_click(self):
-        print("test ok")
-
     def connect_db(db_name):
         db = QSqlDatabase.addDatabase("QSQLITE")
         db.setDatabaseName(db_name)
@@ -148,16 +143,30 @@ SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв
     else:
         print("connection ok")
 
+
 class AddUI(QMainWindow):
     def __init__(self, parent):
         super().__init__()
         self.ui = Ui_AddWindow()
         self.ui.setupUi(self)
         self.parent = parent
+        # self.setAttribute(Qt.WidgetAttribute.)
         self.setWindowTitle("Добавление НИР")
         self.ui.pushButton.clicked.connect(self.handle_values)
         self.ui.pushButtonClear.clicked.connect(self.clear_input_fields)
-        self.fill_comboboxes()
+        self.ui.comboBox_4.currentTextChanged.connect(self.set_vuz_code_value)
+        self.set_default_values()
+        # Устанавливаем маски ввода
+        self.ui.lineEdit_12.setInputMask("DD.DD.DD")
+        self.ui.lineEdit_11.setInputMask("DD.DD.DD")
+
+    def set_vuz_code_value(self, text):
+        sql_query = f'SELECT "Код вуза" FROM VUZ WHERE "Сокр. наим-е ВУЗа" = "{text}"'
+        query = QSqlQuery()
+        query.exec(sql_query)
+        query.next()
+        vuz_code = query.value(0)
+        self.ui.textEdit_2.setPlainText(str(vuz_code))
 
     @staticmethod
     def get_unique_values(column: str) -> List:
@@ -170,23 +179,34 @@ class AddUI(QMainWindow):
             unique_values.append(query.value(0))
         return unique_values
 
-    def fill_comboboxes(self):
+    @staticmethod
+    def maxi_nir_code():
+        sql_query = 'SELECT MAX("Код НИР") FROM "Gr_prog"'
+        query = QSqlQuery()
+        query.exec(sql_query)
+        if query.next():
+            suggested_code = query.value(0) + 1
+        return suggested_code
+
+    def set_default_values(self):
         tender_codes = [str(code) for code in self.get_unique_values('Код конк.')]
         vuzes = self.get_unique_values('Сокр-е наим-е ВУЗа')
+        suggested_code = self.maxi_nir_code()
 
         self.ui.comboBox_3.addItems(tender_codes)
         self.ui.comboBox_4.addItems(vuzes)
+        self.ui.textEdit.setPlainText(str(suggested_code))
 
     def handle_values(self):
-        colnames = [# Comboboxes
-                    "Код конк.",  "Сокр-е наим-е ВУЗа",
+        colnames = [  # Comboboxes
+            "Код конк.", "Сокр-е наим-е ВУЗа",
 
-                    # Text edits
-                    "Код НИР", "Руководитель",
-                    "План. объём финанс-я", "Код по ГРНТИ",
-                    "Должность", "Звание",
-                    "Ученая степень", "Код вуза",
-                    "Наименование НИР"]
+            # Text edits
+            "Код НИР", "Руководитель",
+            "План. объём финанс-я", "Код по ГРНТИ",
+            "Должность", "Звание",
+            "Ученая степень", "Код вуза",
+            "Наименование НИР"]
 
         # Comboboxes
         tender_code = self.ui.comboBox_3.currentText()
@@ -196,10 +216,13 @@ class AddUI(QMainWindow):
         nir_code = self.ui.textEdit.toPlainText()
         nir_chief = self.ui.textEdit_4.toPlainText()
         plan_finance = self.ui.textEdit_8.toPlainText()
-        grnti_code_1 = self.ui.textEdit_11.toPlainText()
-        grnti_code_2 = self.ui.textEdit_10.toPlainText()
-        grnti_code = f"{grnti_code_1}, {grnti_code_2}"
-        #grnti_code = self.ui.textEdit_3.toPlainText()
+        grnti_code_1 = self.ui.lineEdit_11.toPlainText()
+        grnti_code_2 = self.ui.lineEdit_12.toPlainText()
+        if grnti_code_2:
+            grnti_code = f"{grnti_code_1},{grnti_code_2}"
+        else:
+            grnti_code = f"{grnti_code_1}"
+        # grnti_code = self.ui.textEdit_3.toPlainText()
         chief_post = self.ui.textEdit_5.toPlainText()
         scientific_rank = self.ui.textEdit_6.toPlainText()
         scientific_degree = self.ui.textEdit_7.toPlainText()
@@ -213,6 +236,7 @@ class AddUI(QMainWindow):
         print(f'{handled_values=}')
 
         self.add_data(handled_values)
+        self.clear_input_fields()
 
     def add_data(self, column_values: dict):
         columns, values = column_values.keys(), column_values.values()
@@ -251,8 +275,9 @@ class AddUI(QMainWindow):
             self.ui.textEdit_7.clear()
             self.ui.textEdit_2.clear()
             self.ui.textEdit_9.clear()
-            self.ui.textEdit_10.clear()
-            self.ui.textEdit_11.clear()
+            self.ui.lineEdit_12.clear()
+            self.ui.lineEdit_11.clear()
+
 
 class EditUI(QMainWindow):
     def __init__(self, parent):
