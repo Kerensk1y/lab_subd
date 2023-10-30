@@ -78,9 +78,9 @@ class Ui_AddWindow(object):
         font.setPointSize(12)
         self.label_4.setFont(font)
         self.label_4.setObjectName("label_4")
-        self.pushButton_2 = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.pushButton_2.setGeometry(QtCore.QRect(610, 560, 93, 28))
-        self.pushButton_2.setObjectName("pushButton_2")
+        self.pushButtonClear = QtWidgets.QPushButton(parent=self.centralwidget)
+        self.pushButtonClear.setGeometry(QtCore.QRect(610, 560, 93, 28))
+        self.pushButtonClear.setObjectName("pushButtonClear")
         self.label_8 = QtWidgets.QLabel(parent=self.centralwidget)
         self.label_8.setGeometry(QtCore.QRect(50, 350, 269, 24))
         font = QtGui.QFont()
@@ -144,9 +144,6 @@ class Ui_AddWindow(object):
         self.comboBox_3 = QtWidgets.QComboBox(parent=self.centralwidget)
         self.comboBox_3.setGeometry(QtCore.QRect(480, 60, 220, 30))
         self.comboBox_3.setObjectName("comboBox_3")
-        self.textEdit_3 = QtWidgets.QTextEdit(parent=self.centralwidget)
-        self.textEdit_3.setGeometry(QtCore.QRect(480, 220, 221, 31))
-        self.textEdit_3.setObjectName("textEdit_3")
         self.comboBox_4 = QtWidgets.QComboBox(parent=self.centralwidget)
         self.comboBox_4.setGeometry(QtCore.QRect(480, 140, 220, 30))
         self.comboBox_4.setObjectName("comboBox_4")
@@ -159,6 +156,18 @@ class Ui_AddWindow(object):
         self.textEdit_9 = QtWidgets.QTextEdit(parent=self.centralwidget)
         self.textEdit_9.setGeometry(QtCore.QRect(390, 470, 311, 71))
         self.textEdit_9.setObjectName("textEdit_9")
+        self.textEdit_10 = QtWidgets.QTextEdit(parent=self.centralwidget)
+        self.textEdit_10.setGeometry(QtCore.QRect(630, 220, 71, 31))
+        self.textEdit_10.setObjectName("textEdit_10")
+        self.textEdit_11 = QtWidgets.QTextEdit(parent=self.centralwidget)
+        self.textEdit_11.setGeometry(QtCore.QRect(480, 220, 71, 31))
+        self.textEdit_11.setObjectName("textEdit_11")
+        self.label_13 = QtWidgets.QLabel(parent=self.centralwidget)
+        self.label_13.setGeometry(QtCore.QRect(560, 230, 55, 16))
+        font = QtGui.QFont()
+        font.setPointSize(9)
+        self.label_13.setFont(font)
+        self.label_13.setObjectName("label_13")
         AddWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=AddWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 745, 26))
@@ -185,9 +194,20 @@ class Ui_AddWindow(object):
         self.label_9.setText(_translate("AddWindow", "Руководитель НИР"))
         self.label_10.setText(_translate("AddWindow", "Ученая степень руководителя"))
         self.label_4.setText(_translate("AddWindow", "ВУЗ"))
-        self.pushButton_2.setText(_translate("AddWindow", "Очистить"))
+        self.pushButtonClear.setText(_translate("AddWindow", "Очистить"))
         self.label_8.setText(_translate("AddWindow", "Ученое звание руководителя"))
         self.label_11.setText(_translate("AddWindow", "Наименование НИР"))
+        self.textEdit_10.setHtml(_translate("AddWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:7.8pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>"))
+        self.textEdit_11.setHtml(_translate("AddWindow", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
+"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
+"p, li { white-space: pre-wrap; }\n"
+"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:7.8pt; font-weight:400; font-style:normal;\">\n"
+"<p style=\"-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>"))
+        self.label_13.setText(_translate("AddWindow", "И/Или"))
 
 
 if __name__ == "__main__":

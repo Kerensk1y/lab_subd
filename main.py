@@ -122,7 +122,6 @@ SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв
     else:
         print("connection ok")
 
-
 class AddUI(QMainWindow):
     def __init__(self, parent):
         super().__init__()
@@ -132,14 +131,26 @@ class AddUI(QMainWindow):
         # self.setAttribute(Qt.WidgetAttribute.)
         self.setWindowTitle("Добавление НИР")
         self.ui.pushButton.clicked.connect(self.handle_values)
+        self.ui.pushButtonClear.clicked.connect(self.clear_input_fields)
+        self.fill_comboboxes()
 
-    # @staticmethod
-    # def get_unique_values(column: str) -> List:
-    #     sql_query = f'SELECT DISTINCT("{column}") FROM Gr_prog'
-    #     query = QSqlQuery(sql_query).exec()
-    #     while next(query):
-    #         pass
-    #     return unique_values
+    @staticmethod
+    def get_unique_values(column: str) -> List:
+        sql_query = f'SELECT DISTINCT("{column}") FROM Gr_prog'
+        query = QSqlQuery()
+        query.exec(sql_query)
+
+        unique_values = []
+        while query.next():
+            unique_values.append(query.value(0))
+        return unique_values
+
+    def fill_comboboxes(self):
+        tender_codes = [str(code) for code in self.get_unique_values('Код конк.')]
+        vuzes = self.get_unique_values('Сокр-е наим-е ВУЗа')
+
+        self.ui.comboBox_3.addItems(tender_codes)
+        self.ui.comboBox_4.addItems(vuzes)
 
     def handle_values(self):
         colnames = [# Comboboxes
@@ -152,10 +163,6 @@ class AddUI(QMainWindow):
                     "Ученая степень", "Код вуза",
                     "Наименование НИР"]
 
-        # Fill data in comboboxes
-        # tender_code_values = self.get_unique_values('Код конк.')
-        # print(tender_code_values)
-
         # Comboboxes
         tender_code = self.ui.comboBox_3.currentText()
         vuz = self.ui.comboBox_4.currentText()
@@ -164,10 +171,10 @@ class AddUI(QMainWindow):
         nir_code = self.ui.textEdit.toPlainText()
         nir_chief = self.ui.textEdit_4.toPlainText()
         plan_finance = self.ui.textEdit_8.toPlainText()
-        # grnti_code_1 = self.ui.textEdit_11.toPlainText()
-        # grnti_code_2 = self.ui.textEdit_10.toPlainText()
-        # grnti_code = f"{grnti_code_1}, {grnti_code_2}"
-        grnti_code = self.ui.textEdit_3.toPlainText()
+        grnti_code_1 = self.ui.textEdit_11.toPlainText()
+        grnti_code_2 = self.ui.textEdit_10.toPlainText()
+        grnti_code = f"{grnti_code_1}, {grnti_code_2}"
+        #grnti_code = self.ui.textEdit_3.toPlainText()
         chief_post = self.ui.textEdit_5.toPlainText()
         scientific_rank = self.ui.textEdit_6.toPlainText()
         scientific_degree = self.ui.textEdit_7.toPlainText()
@@ -206,18 +213,22 @@ class AddUI(QMainWindow):
 
         self.parent.Gr_prog()
 
-    def clear_input_fields(self): # Очистить поля ввода, чтобы пользователь мог ввести новые данные
-        self.ui.comboBox_3.setCurrentIndex(0)
-        self.ui.comboBox_4.setCurrentIndex(0)
-        self.ui.textEdit.clear()
-        self.ui.textEdit_4.clear()
-        self.ui.textEdit_8.clear()
-        self.ui.textEdit_5.clear()
-        self.ui.textEdit_6.clear()
-        self.ui.textEdit_7.clear()
-        self.ui.textEdit_2.clear()
-        self.ui.textEdit_9.clear()
-
+    def clear_input_fields(self):  # Очистить поля ввода, чтобы пользователь мог ввести новые данные
+        buttonReply = QMessageBox.question(self, 'Подтвердите действие', "Вы действительно хотите очистить все поля?",
+                                           buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        if buttonReply == QMessageBox.StandardButton.Yes:
+            self.ui.comboBox_3.setCurrentIndex(0)
+            self.ui.comboBox_4.setCurrentIndex(0)
+            self.ui.textEdit.clear()
+            self.ui.textEdit_4.clear()
+            self.ui.textEdit_8.clear()
+            self.ui.textEdit_5.clear()
+            self.ui.textEdit_6.clear()
+            self.ui.textEdit_7.clear()
+            self.ui.textEdit_2.clear()
+            self.ui.textEdit_9.clear()
+            self.ui.textEdit_10.clear()
+            self.ui.textEdit_11.clear()
 
 class EditUI(QMainWindow):
     def __init__(self, parent):
