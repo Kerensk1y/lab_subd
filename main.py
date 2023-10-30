@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView, QMessageBox
 from PyQt6 import uic
 from PyQt6.uic import loadUi
 from PyQt6.QtSql import *
@@ -6,12 +6,15 @@ import sys
 from PyQt6.uic.properties import QtWidgets
 from EditForm import Ui_EditWindow
 from AddForm import Ui_AddWindow
+from PyQt6.QtWidgets import QDialog, QFormLayout, QLabel, QLineEdit, QPushButton
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
+from typing import List
+
 
 db_name = 'MyDb.db'
 
 
 class MainUI(QMainWindow):
-
     def __init__(self):
         super(MainUI, self).__init__()
         loadUi("MainForm.ui", self)
@@ -122,12 +125,98 @@ SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв
 
 class AddUI(QMainWindow):
     def __init__(self, parent):
-        super(AddUI, self).__init__()
+        super().__init__()
         self.ui = Ui_AddWindow()
         self.ui.setupUi(self)
         self.parent = parent
         # self.setAttribute(Qt.WidgetAttribute.)
         self.setWindowTitle("Добавление НИР")
+        self.ui.pushButton.clicked.connect(self.handle_values)
+
+    # @staticmethod
+    # def get_unique_values(column: str) -> List:
+    #     sql_query = f'SELECT DISTINCT("{column}") FROM Gr_prog'
+    #     query = QSqlQuery(sql_query).exec()
+    #     while next(query):
+    #         pass
+    #     return unique_values
+
+    def handle_values(self):
+        colnames = [# Comboboxes
+                    "Код конк.",  "Сокр-е наим-е ВУЗа",
+
+                    # Text edits
+                    "Код НИР", "Руководитель",
+                    "План. объём финанс-я", "Код по ГРНТИ",
+                    "Должность", "Звание",
+                    "Ученая степень", "Код вуза",
+                    "Наименование НИР"]
+
+        # Fill data in comboboxes
+        # tender_code_values = self.get_unique_values('Код конк.')
+        # print(tender_code_values)
+
+        # Comboboxes
+        tender_code = self.ui.comboBox_3.currentText()
+        vuz = self.ui.comboBox_4.currentText()
+
+        # Text edits
+        nir_code = self.ui.textEdit.toPlainText()
+        nir_chief = self.ui.textEdit_4.toPlainText()
+        plan_finance = self.ui.textEdit_8.toPlainText()
+        # grnti_code_1 = self.ui.textEdit_11.toPlainText()
+        # grnti_code_2 = self.ui.textEdit_10.toPlainText()
+        # grnti_code = f"{grnti_code_1}, {grnti_code_2}"
+        grnti_code = self.ui.textEdit_3.toPlainText()
+        chief_post = self.ui.textEdit_5.toPlainText()
+        scientific_rank = self.ui.textEdit_6.toPlainText()
+        scientific_degree = self.ui.textEdit_7.toPlainText()
+        vuz_code = self.ui.textEdit_2.toPlainText()
+        nir_title = self.ui.textEdit_9.toPlainText()
+
+        fields = [tender_code, vuz, nir_code, nir_chief, plan_finance,
+                  grnti_code, chief_post, scientific_rank, scientific_degree, vuz_code, nir_title]
+
+        handled_values = {colname: field for colname, field in zip(colnames, fields) if field}
+        print(f'{handled_values=}')
+
+        self.add_data(handled_values)
+        self.clear_input_fields()
+
+    def add_data(self, column_values: dict):
+        columns, values = column_values.keys(), column_values.values()
+
+        try:
+            sql_query = f"""INSERT INTO Gr_prog ("{'", "'.join(columns)}") 
+                            VALUES ("{'", "'.join(values)}");"""
+
+            print(sql_query)
+            query = QSqlQuery(sql_query)
+
+            if query.lastError().type() == QSqlError.ErrorType.NoError:
+                print('Новая строка успешно добавлена в таблицу Gr_prog')
+                # Обновляем отображение данных в таблице
+                self.parent.Gr_prog()
+                QMessageBox.information(self, "Успех", "Новая запись была успешно добавлена в таблицу")
+
+            else:
+                print('Ошибка при добавлении строки в таблицу Gr_prog:', query.lastError().text())
+        except Exception as error:
+            print("Ошибка при добавлении строки в таблицу Gr_prog:", error)
+
+        self.parent.Gr_prog()
+
+    def clear_input_fields(self): # Очистить поля ввода, чтобы пользователь мог ввести новые данные
+        self.ui.comboBox_3.setCurrentIndex(0)
+        self.ui.comboBox_4.setCurrentIndex(0)
+        self.ui.textEdit.clear()
+        self.ui.textEdit_4.clear()
+        self.ui.textEdit_8.clear()
+        self.ui.textEdit_5.clear()
+        self.ui.textEdit_6.clear()
+        self.ui.textEdit_7.clear()
+        self.ui.textEdit_2.clear()
+        self.ui.textEdit_9.clear()
 
 
 class EditUI(QMainWindow):
