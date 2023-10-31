@@ -9,9 +9,34 @@ from AddForm import Ui_AddWindow
 from PyQt6.QtWidgets import QDialog, QFormLayout, QLabel, QLineEdit, QPushButton
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
 from typing import List
+from PyQt6.QtCore import Qt, QSortFilterProxyModel
 
 db_name = 'MyDb.db'
 
+class CustomSortProxyModel(QSortFilterProxyModel):
+    def __init__(self):
+        super(CustomSortProxyModel, self).__init__()
+        self.sorting_option = "По умолчанию"
+
+    def setSortingOption(self, option):
+        self.sorting_option = option
+    def lessThan(self, left, right):
+        left_data = [self.sourceModel().index(left.row(), col).data() for col in (0, 1, 2, 3, 4)]
+        right_data = [self.sourceModel().index(right.row(), col).data() for col in (0, 1, 2, 3, 4)]
+
+        # Define custom sorting logic based on your criteria
+        if self.sorting_option == "По умолчанию":
+            return left_data[0] < right_data[0]
+        elif self.sorting_option == "Код конкурса + Код Нир":
+            if left_data[0] == right_data[0]:
+                return left_data[1] < right_data[1]
+            return left_data[0] < right_data[0]
+        elif self.sorting_option == "Название ВУЗа":
+            return left_data[3] < right_data[3]
+        elif self.sorting_option == "Плановый об. финансирования":
+            return left_data[4] < right_data[4]
+
+        return left_data[0] < right_data[0]
 
 class MainUI(QMainWindow):
     def __init__(self):
@@ -20,7 +45,9 @@ class MainUI(QMainWindow):
 
         self.setWindowTitle("Сопровождение конкурсов на соискание грантов")
 
-        self.Gr_prog()
+        self.model = QSqlTableModel()
+        self.model.setTable('Gr_prog')
+        self.model.select()
         self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.Table_Gr_prog.triggered.connect(self.Gr_prog)
         self.Table_gr_konk.triggered.connect(self.gr_konk)
@@ -29,6 +56,33 @@ class MainUI(QMainWindow):
         self.Edit.clicked.connect(self.open_window_edit)
         self.Add.clicked.connect(self.open_window_add)
         self.Delete.clicked.connect(self.delete_selected_row)
+        self.customProxyModel = CustomSortProxyModel()
+        self.customProxyModel.setSourceModel(self.model)
+        self.tableView.setModel(self.customProxyModel)
+        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.sortingbox.currentIndexChanged.connect(self.update_sorting_option)
+
+    def update_sorting_option(self):
+        sorting_option = self.sortingbox.currentText()
+
+        if sorting_option == "По умолчанию":
+            self.customProxyModel.setSortingOption("По умолчанию")
+            self.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
+
+        elif sorting_option == "Код конкурса + Код Нир":
+            self.customProxyModel.setSortingOption("Код конкурса + Код Нир")
+            self.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
+
+        elif sorting_option == "Название ВУЗа":
+            self.customProxyModel.setSortingOption("Название ВУЗа")
+            self.customProxyModel.sort(3, Qt.SortOrder.AscendingOrder)
+
+        elif sorting_option == "Плановый об. финансирования":
+            self.customProxyModel.setSortingOption("Плановый об. финансирования")
+            self.customProxyModel.sort(4, Qt.SortOrder.AscendingOrder)
+
+        # Обновите модель в представлении
+        self.tableView.setModel(self.customProxyModel)
 
     def delete_selected_row(self):
         selected_row = self.tableView.selectionModel().currentIndex().row()
