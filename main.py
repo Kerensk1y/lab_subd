@@ -20,9 +20,13 @@ class CustomSortProxyModel(QSortFilterProxyModel):
 
     def setSortingOption(self, option):
         self.sorting_option = option
+
     def lessThan(self, left, right):
         left_data = [self.sourceModel().index(left.row(), col).data() for col in (0, 1, 2, 3, 4)]
         right_data = [self.sourceModel().index(right.row(), col).data() for col in (0, 1, 2, 3, 4)]
+
+        if left_data[0] is None or right_data[0] is None:
+            return False  # Handle None values as needed, for example, by placing them at the end
 
         # Define custom sorting logic based on your criteria
         if self.sorting_option == "По умолчанию":
@@ -32,11 +36,16 @@ class CustomSortProxyModel(QSortFilterProxyModel):
                 return left_data[1] < right_data[1]
             return left_data[0] < right_data[0]
         elif self.sorting_option == "Название ВУЗа":
+            if left_data[3] is None or right_data[3] is None:
+                return False
             return left_data[3] < right_data[3]
         elif self.sorting_option == "Плановый об. финансирования":
+            if left_data[4] is None or right_data[4] is None:
+                return False
             return left_data[4] < right_data[4]
 
         return left_data[0] < right_data[0]
+
 
 class MainUI(QMainWindow):
     def __init__(self):
@@ -96,9 +105,10 @@ class MainUI(QMainWindow):
             )
 
             if confirmation == QMessageBox.StandardButton.Yes:
-                model = self.tableView.model()
-                model.removeRow(selected_row)
-                if model.submitAll():
+                source_model = self.customProxyModel.sourceModel()  # Получаем исходную модель
+                source_model.removeRow(selected_row)
+
+                if source_model.submitAll():
                     QMessageBox.information(self, 'Успешно', 'Запись удалена.')
                 else:
                     QMessageBox.warning(self, 'Ошибка', 'Не удалось удалить запись.')
