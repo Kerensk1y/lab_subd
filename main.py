@@ -197,6 +197,7 @@ class AddUI(QMainWindow):
         self.ui.comboBox_4.addItems(vuzes)
         self.ui.textEdit.setPlainText(str(suggested_code))
 
+
     def handle_values(self):
         colnames = [  # Comboboxes
             "Код конк.", "Сокр-е наим-е ВУЗа",
@@ -216,8 +217,8 @@ class AddUI(QMainWindow):
         nir_code = self.ui.textEdit.toPlainText()
         nir_chief = self.ui.textEdit_4.toPlainText()
         plan_finance = self.ui.textEdit_8.toPlainText()
-        grnti_code_1 = self.ui.lineEdit_11.toPlainText()
-        grnti_code_2 = self.ui.lineEdit_12.toPlainText()
+        grnti_code_1 = self.ui.lineEdit_11.text()
+        grnti_code_2 = self.ui.lineEdit_12.text()
         if grnti_code_2:
             grnti_code = f"{grnti_code_1},{grnti_code_2}"
         else:
@@ -235,8 +236,20 @@ class AddUI(QMainWindow):
         handled_values = {colname: field for colname, field in zip(colnames, fields) if field}
         print(f'{handled_values=}')
 
-        self.add_data(handled_values)
-        self.clear_input_fields()
+        # Display a confirmation message
+        confirmation = QMessageBox.question(
+            self,
+            "Подтвердите действие",
+            "Вы действительно хотите добавить запись в таблицу?",
+            buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if confirmation == QMessageBox.StandardButton.Yes:
+            self.add_data(handled_values)
+        else:
+            QMessageBox.information(self, "Отмена", "Добавление записи отменено.")
+
+
 
     def add_data(self, column_values: dict):
         columns, values = column_values.keys(), column_values.values()
@@ -267,13 +280,11 @@ class AddUI(QMainWindow):
         if buttonReply == QMessageBox.StandardButton.Yes:
             self.ui.comboBox_3.setCurrentIndex(0)
             self.ui.comboBox_4.setCurrentIndex(0)
-            self.ui.textEdit.clear()
             self.ui.textEdit_4.clear()
             self.ui.textEdit_8.clear()
             self.ui.textEdit_5.clear()
             self.ui.textEdit_6.clear()
             self.ui.textEdit_7.clear()
-            self.ui.textEdit_2.clear()
             self.ui.textEdit_9.clear()
             self.ui.lineEdit_12.clear()
             self.ui.lineEdit_11.clear()
