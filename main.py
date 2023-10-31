@@ -71,6 +71,7 @@ class MainUI(QMainWindow):
         self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.sortingbox.currentIndexChanged.connect(self.update_sorting_option)
 
+
     def update_sorting_option(self):
         sorting_option = self.sortingbox.currentText()
 
@@ -416,11 +417,12 @@ class EditUI(QMainWindow):
         self.row_data = row_data
         self.setWindowTitle("Редактирование НИР")
         self.populate_form_fields()
+        self.ui.pushButton.clicked.connect(self.update_data)
 
     def populate_form_fields(self):
-        self.ui.comboBox_3.setCurrentText(str(self.row_data['Код конк.']))
+        self.ui.comboBox_3.setCurrentText(str(self.row_data.get('Код конк.', '')))
         self.ui.textEdit.setPlainText(str(self.row_data['Код НИР']))
-        self.ui.comboBox_4.setCurrentText(self.row_data['Сокр-е наим-е ВУЗа'])
+        self.ui.comboBox_4.setCurrentText(self.row_data.get('Сокр-е наим-е ВУЗа', ''))
         self.ui.textEdit_11.setPlainText(str(self.row_data['Код по ГРНТИ']))
         self.ui.textEdit_4.setPlainText(self.row_data['Руководитель'])
         self.ui.textEdit_5.setPlainText(self.row_data['Должность'])
@@ -433,23 +435,44 @@ class EditUI(QMainWindow):
         self.ui.pushButton.clicked.connect(self.update_data)
 
     def update_data(self):
-        # Retrieve user-edited data from form fields
-        edited_data = {
-            'Код конк.': self.ui.comboBox_3.currentText(),
-            'Код НИР': self.ui.textEdit.toPlainText(),
-            'Сокр-е наим-е ВУЗа': self.ui.comboBox_4.currentText(),
-            'Код по ГРНТИ': self.ui.textEdit_11.toPlainText(),
-            'Руководитель': self.ui.textEdit_4.toPlainText(),
-            'Должность': self.ui.textEdit_5.toPlainText(),
-            'Звание': self.ui.textEdit_6.toPlainText(),
-            'Ученая степень': self.ui.textEdit_7.toPlainText(),
-            'План. объём финанс-я': self.ui.textEdit_8.toPlainText(),
-            'Наименование НИР': self.ui.textEdit_9.toPlainText(),
+        confirmation = QMessageBox.question(
+            self,
+            "Подтвердите действие",
+            "Вы уверены, что хотите изменить данные?",
+            buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
 
-        }
+        if confirmation == QMessageBox.StandardButton.Yes:
+            edited_data = {
+                'Код конк.': self.ui.comboBox_3.currentText(),
+                'Код НИР': self.ui.textEdit.toPlainText(),
+                'Сокр-е наим-е ВУЗа': self.ui.comboBox_4.currentText(),
+                'Код по ГРНТИ': self.ui.textEdit_11.toPlainText(),
+                'Руководитель': self.ui.textEdit_4.toPlainText(),
+                'Должность': self.ui.textEdit_5.toPlainText(),
+                'Звание': self.ui.textEdit_6.toPlainText(),
+                'Ученая степень': self.ui.textEdit_7.toPlainText(),
+                'План. объём финанс-я': self.ui.textEdit_8.toPlainText(),
+                'Наименование НИР': self.ui.textEdit_9.toPlainText(),
+            }
 
-        # Update the database with the edited data
-        self.parent.update_selected_row(self.row_data, edited_data)
+            # Update the database with the edited data
+            row = self.parent.tableView.selectionModel().currentIndex().row()
+            if row >= 0:
+                for key, value in edited_data.items():
+                    column_index = self.parent.model.record().indexOf(key)
+                    if column_index != -1:
+                        self.parent.model.setData(self.parent.model.index(row, column_index), value)
+
+                if self.parent.model.submitAll():
+                    QMessageBox.information(self, 'Успешно', 'Запись обновлена.')
+                else:
+                    QMessageBox.warning(self, 'Ошибка', 'Не удалось обновить запись в базе данных.')
+                self.close()
+            else:
+                QMessageBox.warning(self, 'Ошибка', 'Ни одна строка не выбрана для редактирования.')
+        else:
+            QMessageBox.information(self, "Отмена", "Изменение данных отменено.")
 
 
 if __name__ == '__main__':
