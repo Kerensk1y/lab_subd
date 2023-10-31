@@ -119,8 +119,61 @@ class MainUI(QMainWindow):
             QMessageBox.warning(self, 'Ошибка', 'Ни одна строка не выбрана для удаления.')
 
     def open_window_edit(self):
-        self.wEdit = EditUI(parent=self)
-        self.wEdit.show()
+        selected_row_index = self.tableView.selectionModel().currentIndex().row()
+        if selected_row_index >= 0:
+            selected_row_data = self.get_selected_row_data(selected_row_index)
+            self.wEdit = EditUI(self, selected_row_data)
+            self.wEdit.show()
+        else:
+            QMessageBox.warning(self, 'Ошибка', 'Ни одна строка не выбрана для редактирования.')
+
+    def get_selected_row_data(self, row_index):
+        row_data = {}
+        for col in range(self.model.columnCount()):
+            column_name = self.model.headerData(col, Qt.Orientation.Horizontal)
+            cell_data = self.model.data(self.model.index(row_index, col))
+            row_data[column_name] = cell_data
+        return row_data
+
+    def update_selected_row(self, old_data, new_data):
+        # Update the database with new_data while keeping the primary key (e.g., "Код НИР") from old_data unchanged
+        # Construct and execute an SQL UPDATE statement to update the selected row in the database
+        # You can use QSqlQuery to execute the UPDATE statement
+
+        # After successfully updating the database, refresh the table view with the updated data
+
+        update_sql = f"""UPDATE Gr_prog
+                         SET "Код конк." = ?,
+                             "Код НИР" = ?,
+                             "Сокр-е наим-е ВУЗа" = ?,
+                             "Код по ГРНТИ" = ?,
+                             "Руководитель" = ?,
+                             "Должность" = ?,
+                             "Звание" = ?,
+                             "Ученая степень" = ?,
+                             "План. объём финанс-я" = ?,
+                             "Наименование НИР" = ?,
+                         WHERE "Код конк." = ?;"""
+
+        query = QSqlQuery()
+        query.prepare(update_sql)
+        query.bindValue(0, new_data['comboBox_3'])
+        query.bindValue(1, new_data['textEdit'])
+        query.bindValue(2, new_data['comboBox_4'])
+        query.bindValue(3, new_data['textEdit_11'])
+        query.bindValue(4, new_data['textEdit_4'])
+        query.bindValue(5, new_data['textEdit_5'])
+        query.bindValue(6, new_data['textEdit_6'])
+        query.bindValue(7, new_data['textEdit_7'])
+        query.bindValue(8, new_data['textEdit_8'])
+        query.bindValue(9, new_data['textEdit_9'])
+        query.bindValue(10, old_data['Код конк.'])
+
+        if query.exec():
+            QMessageBox.information(self, 'Успешно', 'Запись обновлена.')
+            self.model.select()  # Refresh the model after updating
+        else:
+            QMessageBox.warning(self, 'Ошибка', 'Не удалось обновить запись в базе данных.')
 
     def open_window_add(self):
         self.wAdd = AddUI(parent=self)
@@ -355,13 +408,48 @@ class AddUI(QMainWindow):
 
 
 class EditUI(QMainWindow):
-    def __init__(self, parent):
+    def __init__(self, parent, row_data):
         super(EditUI, self).__init__()
         self.ui = Ui_EditWindow()
         self.ui.setupUi(self)
         self.parent = parent
-        # self.setAttribute(Qt.WidgetAttribute.)
+        self.row_data = row_data
         self.setWindowTitle("Редактирование НИР")
+        self.populate_form_fields()
+
+    def populate_form_fields(self):
+        self.ui.comboBox_3.setCurrentText(str(self.row_data['Код конк.']))
+        self.ui.textEdit.setPlainText(str(self.row_data['Код НИР']))
+        self.ui.comboBox_4.setCurrentText(self.row_data['Сокр-е наим-е ВУЗа'])
+        self.ui.textEdit_11.setPlainText(str(self.row_data['Код по ГРНТИ']))
+        self.ui.textEdit_4.setPlainText(self.row_data['Руководитель'])
+        self.ui.textEdit_5.setPlainText(self.row_data['Должность'])
+        self.ui.textEdit_6.setPlainText(self.row_data['Звание'])
+        self.ui.textEdit_7.setPlainText(self.row_data['Ученая степень'])
+        self.ui.textEdit_8.setPlainText(str(self.row_data['План. объём финанс-я']))
+        self.ui.textEdit_9.setPlainText(self.row_data['Наименование НИР'])
+
+        # Connect the Push Button to an update function
+        self.ui.pushButton.clicked.connect(self.update_data)
+
+    def update_data(self):
+        # Retrieve user-edited data from form fields
+        edited_data = {
+            'Код конк.': self.ui.comboBox_3.currentText(),
+            'Код НИР': self.ui.textEdit.toPlainText(),
+            'Сокр-е наим-е ВУЗа': self.ui.comboBox_4.currentText(),
+            'Код по ГРНТИ': self.ui.textEdit_11.toPlainText(),
+            'Руководитель': self.ui.textEdit_4.toPlainText(),
+            'Должность': self.ui.textEdit_5.toPlainText(),
+            'Звание': self.ui.textEdit_6.toPlainText(),
+            'Ученая степень': self.ui.textEdit_7.toPlainText(),
+            'План. объём финанс-я': self.ui.textEdit_8.toPlainText(),
+            'Наименование НИР': self.ui.textEdit_9.toPlainText(),
+
+        }
+
+        # Update the database with the edited data
+        self.parent.update_selected_row(self.row_data, edited_data)
 
 
 if __name__ == '__main__':
