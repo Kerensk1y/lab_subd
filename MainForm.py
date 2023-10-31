@@ -13,7 +13,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
-        MainWindow.resize(1083, 845)
+        MainWindow.resize(1083, 856)
         font = QtGui.QFont()
         font.setPointSize(10)
         MainWindow.setFont(font)
@@ -132,7 +132,7 @@ class Ui_MainWindow(object):
         self.label.setText(_translate("MainWindow", "Сортировка по:"))
         self.sortingbox.setItemText(1, _translate("MainWindow", "Код конкурса + Код Нир"))
         self.sortingbox.setItemText(2, _translate("MainWindow", "Название ВУЗа"))
-        self.sortingbox.setItemText(3, _translate("MainWindow", "Плановый об. гранта"))
+        self.sortingbox.setItemText(3, _translate("MainWindow", "Плановый об. финансирования"))
         self.Resetfilters.setText(_translate("MainWindow", "Сбросить все фильтры"))
         self.Edit.setText(_translate("MainWindow", "Редактирование"))
         self.Add.setText(_translate("MainWindow", "Добавить"))

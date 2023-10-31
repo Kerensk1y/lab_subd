@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1083</width>
-    <height>845</height>
+    <height>856</height>
    </rect>
   </property>
   <property name="font">
@@ -154,7 +154,7 @@
       </item>
       <item>
        <property name="text">
-        <string>Плановый об. гранта</string>
+        <string>Плановый об. финансирования</string>
        </property>
       </item>
      </widget>
