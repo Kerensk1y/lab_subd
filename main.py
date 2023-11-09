@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import QDialog, QFormLayout, QLabel, QLineEdit, QPushButton
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
 from typing import List
 from PyQt6.QtCore import Qt, QSortFilterProxyModel
+import re
 
 db_name = 'MyDb.db'
 
@@ -134,6 +135,13 @@ class MainUI(QMainWindow):
             column_name = self.model.headerData(col, Qt.Orientation.Horizontal)
             cell_data = self.model.data(self.model.index(row_index, col))
             row_data[column_name] = cell_data
+        if re.findall(r'..\..*,(.*)', row_data["Код по ГРНТИ"]):
+            g1 = re.findall(r'(..\..*),.*', row_data["Код по ГРНТИ"])[0]
+            g2 = re.findall(r'..\..*,(.*)', row_data["Код по ГРНТИ"])[0]
+            print(f"{g1}\n{g2}")
+        else:
+            print(row_data["Код по ГРНТИ"])
+
         return row_data
 
     def update_selected_row(self, old_data, new_data):
@@ -142,26 +150,28 @@ class MainUI(QMainWindow):
         # You can use QSqlQuery to execute the UPDATE statement
 
         # After successfully updating the database, refresh the table view with the updated data
-
+        print(old_data)
+        print(new_data)
         update_sql = f"""UPDATE Gr_prog
-                         SET "Код конк." = ?,
-                             "Код НИР" = ?,
-                             "Сокр-е наим-е ВУЗа" = ?,
-                             "Код по ГРНТИ" = ?,
-                             "Руководитель" = ?,
-                             "Должность" = ?,
-                             "Звание" = ?,
-                             "Ученая степень" = ?,
-                             "План. объём финанс-я" = ?,
-                             "Наименование НИР" = ?,
-                         WHERE "Код конк." = ?;"""
+                         SET "Код конк." =  {''},
+                             "Код НИР" = {''},
+                             "Сокр-е наим-е ВУЗа" = {''},
+                             "Код по ГРНТИ" = {''},
+                             "Руководитель" = {''},
+                             "Должность" = {''},
+                             "Звание" = {''},
+                             "Ученая степень" = {''},
+                             "План. объём финанс-я" = {''},
+                             "Наименование НИР" = {''},
+                         WHERE "Код конк." = {''};"""
 
         query = QSqlQuery()
         query.prepare(update_sql)
-        query.bindValue(0, new_data['comboBox_3'])
+        query.bindValue(0, new_data['textEdit_2'])
         query.bindValue(1, new_data['textEdit'])
-        query.bindValue(2, new_data['comboBox_4'])
+        query.bindValue(2, new_data['textEdit_3'])
         query.bindValue(3, new_data['textEdit_11'])
+        # query.bindValue(3, new_data['textEdit_10'])
         query.bindValue(4, new_data['textEdit_4'])
         query.bindValue(5, new_data['textEdit_5'])
         query.bindValue(6, new_data['textEdit_6'])
@@ -288,11 +298,11 @@ class AddUI(QMainWindow):
 
     @staticmethod
     def get_unique_values(column: str) -> List:
-        sql_query = f'SELECT DISTINCT("{column}") FROM Gr_prog'
+        sql_query = f'SELECT DISTINCT("{column}") FROM Gr_prog ORDER BY "{column}"'
         query = QSqlQuery()
         query.exec(sql_query)
 
-        unique_values = []
+        unique_values = ['']
         while query.next():
             unique_values.append(query.value(0))
         return unique_values
@@ -353,6 +363,8 @@ class AddUI(QMainWindow):
 
         handled_values = {colname: field for colname, field in zip(colnames, fields) if field}
         print(f'{handled_values=}')
+
+        # if len(handled_values) !=
 
         # Display a confirmation message
         confirmation = QMessageBox.question(
@@ -420,9 +432,11 @@ class EditUI(QMainWindow):
         self.ui.pushButton.clicked.connect(self.update_data)
 
     def populate_form_fields(self):
-        self.ui.comboBox_3.setCurrentText(str(self.row_data.get('Код конк.', '')))
+        # self.ui.comboBox_3.setCurrentText(str(self.row_data.get('Код конк.', '')))
+        self.ui.textEdit_2.setPlainText(str(self.row_data['Код конк.']))
         self.ui.textEdit.setPlainText(str(self.row_data['Код НИР']))
-        self.ui.comboBox_4.setCurrentText(self.row_data.get('Сокр-е наим-е ВУЗа', ''))
+        self.ui.textEdit_3.setPlainText(str(self.row_data['Сокр-е наим-е ВУЗа']))
+        # self.ui.comboBox_4.setCurrentText(self.row_data.get('Сокр-е наим-е ВУЗа', ''))
         self.ui.textEdit_11.setPlainText(str(self.row_data['Код по ГРНТИ']))
         self.ui.textEdit_4.setPlainText(self.row_data['Руководитель'])
         self.ui.textEdit_5.setPlainText(self.row_data['Должность'])
@@ -444,9 +458,11 @@ class EditUI(QMainWindow):
 
         if confirmation == QMessageBox.StandardButton.Yes:
             edited_data = {
-                'Код конк.': self.ui.comboBox_3.currentText(),
+                # 'Код конк.': self.ui.comboBox_3.currentText(),
+                'Код конк.': self.ui.textEdit_2.toPlainText(),
                 'Код НИР': self.ui.textEdit.toPlainText(),
-                'Сокр-е наим-е ВУЗа': self.ui.comboBox_4.currentText(),
+                'Сокр-е наим-е ВУЗа': self.ui.textEdit_3.toPlainText(),
+                # 'Сокр-е наим-е ВУЗа': self.ui.comboBox_4.currentText(),
                 'Код по ГРНТИ': self.ui.textEdit_11.toPlainText(),
                 'Руководитель': self.ui.textEdit_4.toPlainText(),
                 'Должность': self.ui.textEdit_5.toPlainText(),
