@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView, QMessageBox,QAbstractItemView
 from PyQt6 import uic
 from PyQt6.uic import loadUi
 from PyQt6.QtSql import *
@@ -9,56 +9,42 @@ from AddForm import Ui_AddWindow
 from PyQt6.QtWidgets import QDialog, QFormLayout, QLabel, QLineEdit, QPushButton
 from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
 from typing import List
-from PyQt6.QtCore import Qt, QSortFilterProxyModel
+from PyQt6.QtCore import Qt, QSortFilterProxyModel, QItemSelectionModel
 import re
 
 db_name = 'MyDb.db'
 
+
 class CustomSortProxyModel(QSortFilterProxyModel):
     def __init__(self):
         super(CustomSortProxyModel, self).__init__()
-        self.sorting_option = "По умолчанию"
-
-    def setSortingOption(self, option):
-        self.sorting_option = option
 
     def lessThan(self, left, right):
-        left_data = [self.sourceModel().index(left.row(), col).data() for col in (0, 1, 2, 3, 4)]
-        right_data = [self.sourceModel().index(right.row(), col).data() for col in (0, 1, 2, 3, 4)]
+        left_data = [self.sourceModel().index(left.row(), col).data() for col in range(self.sourceModel().columnCount())]
+        right_data = [self.sourceModel().index(right.row(), col).data() for col in range(self.sourceModel().columnCount())]
 
-        if left_data[0] is None or right_data[0] is None:
-            return False  # Handle None values as needed, for example, by placing them at the end
+        # Handle None values by considering them greater than any integer
+        for i in range(len(left_data)):
+            if left_data[i] is None:
+                left_data[i] = float('inf')  # Consider None as positive infinity
+            if right_data[i] is None:
+                right_data[i] = float('inf')  # Consider None as positive infinity
 
-        # Define custom sorting logic based on your criteria
-        if self.sorting_option == "По умолчанию":
+        # Implement your custom sorting logic here
+        # For example, sort by the first column, and if they are equal, sort by the second column
+        if left_data[0] != right_data[0]:
             return left_data[0] < right_data[0]
-        elif self.sorting_option == "Код конкурса + Код Нир":
-            if left_data[0] == right_data[0]:
-                return left_data[1] < right_data[1]
-            return left_data[0] < right_data[0]
-        elif self.sorting_option == "Название ВУЗа":
-            if left_data[3] is None or right_data[3] is None:
-                return False
-            return left_data[3] < right_data[3]
-        elif self.sorting_option == "Плановый об. финансирования":
-            if left_data[4] is None or right_data[4] is None:
-                return False
-            return left_data[4] < right_data[4]
-
-        return left_data[0] < right_data[0]
-
+        else:
+            return left_data[1] < right_data[1]
 
 class MainUI(QMainWindow):
     def __init__(self):
         super(MainUI, self).__init__()
         loadUi("MainForm.ui", self)
-
         self.setWindowTitle("Сопровождение конкурсов на соискание грантов")
-
         self.model = QSqlTableModel()
         self.model.setTable('Gr_prog')
         self.model.select()
-        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.Table_Gr_prog.triggered.connect(self.Gr_prog)
         self.Table_gr_konk.triggered.connect(self.gr_konk)
         self.Table_VUZ.triggered.connect(self.VUZ)
@@ -66,38 +52,46 @@ class MainUI(QMainWindow):
         self.Edit.clicked.connect(self.open_window_edit)
         self.Add.clicked.connect(self.open_window_add)
         self.Delete.clicked.connect(self.delete_selected_row)
+        self.model.setSort(0, Qt.SortOrder.AscendingOrder)  # Sort by the first column in ascending order
+        self.model.select()
         self.customProxyModel = CustomSortProxyModel()
         self.customProxyModel.setSourceModel(self.model)
+        self.customProxyModel.setDynamicSortFilter(True)
+
         self.tableView.setModel(self.customProxyModel)
         self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.sortingbox.currentIndexChanged.connect(self.update_sorting_option)
 
+        # Connect signals for automatic sorting when data changes
+        self.model.dataChanged.connect(self.sort_table)
+        self.model.rowsInserted.connect(self.sort_table)
+        self.model.rowsRemoved.connect(self.sort_table)
 
-    def update_sorting_option(self):
-        sorting_option = self.sortingbox.currentText()
+        # ... (your existing code)
 
-        if sorting_option == "По умолчанию":
-            self.customProxyModel.setSortingOption("По умолчанию")
-            self.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
+    def showEvent(self, event):
+        # Call the base class showEvent to ensure any default behavior is executed
+        super(MainUI, self).showEvent(event)
 
-        elif sorting_option == "Код конкурса + Код Нир":
-            self.customProxyModel.setSortingOption("Код конкурса + Код Нир")
-            self.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
+        # Set the initial sorting order for columns 0 and 1 (change as needed)
+        self.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
+        self.customProxyModel.sort(1, Qt.SortOrder.AscendingOrder)
 
-        elif sorting_option == "Название ВУЗа":
-            self.customProxyModel.setSortingOption("Название ВУЗа")
-            self.customProxyModel.sort(3, Qt.SortOrder.AscendingOrder)
+    def sort_table(self):
+        # Sort the table by the first and second columns
+        self.tableView.sortByColumn(0, Qt.SortOrder.AscendingOrder)
+        self.tableView.sortByColumn(1, Qt.SortOrder.AscendingOrder)
 
-        elif sorting_option == "Плановый об. финансирования":
-            self.customProxyModel.setSortingOption("Плановый об. финансирования")
-            self.customProxyModel.sort(4, Qt.SortOrder.AscendingOrder)
-
-        # Обновите модель в представлении
-        self.tableView.setModel(self.customProxyModel)
+        # Ensure that the sorting is applied to both columns
+        self.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
+        self.customProxyModel.sort(1, Qt.SortOrder.AscendingOrder)
 
     def delete_selected_row(self):
-        selected_row = self.tableView.selectionModel().currentIndex().row()
-        if selected_row >= 0:
+        selected_row_proxy = self.tableView.selectionModel().currentIndex().row()
+        if selected_row_proxy >= 0:
+            # Map the proxy index to the source index
+            selected_row_source = self.customProxyModel.mapToSource(
+                self.tableView.model().index(selected_row_proxy, 0)).row()
+
             # Ask for confirmation
             confirmation = QMessageBox.question(
                 self,
@@ -107,8 +101,8 @@ class MainUI(QMainWindow):
             )
 
             if confirmation == QMessageBox.StandardButton.Yes:
-                source_model = self.customProxyModel.sourceModel()  # Получаем исходную модель
-                source_model.removeRow(selected_row)
+                source_model = self.customProxyModel.sourceModel()  # Get the source model
+                source_model.removeRow(selected_row_source)
 
                 if source_model.submitAll():
                     QMessageBox.information(self, 'Успешно', 'Запись удалена.')
@@ -278,7 +272,6 @@ class AddUI(QMainWindow):
         self.ui = Ui_AddWindow()
         self.ui.setupUi(self)
         self.parent = parent
-        # self.setAttribute(Qt.WidgetAttribute.)
         self.setWindowTitle("Добавление НИР")
         self.ui.pushButton.clicked.connect(self.handle_values)
         self.ui.pushButtonClear.clicked.connect(self.clear_input_fields)
@@ -379,30 +372,42 @@ class AddUI(QMainWindow):
         else:
             QMessageBox.information(self, "Отмена", "Добавление записи отменено.")
 
-
-
     def add_data(self, column_values: dict):
         columns, values = column_values.keys(), column_values.values()
-
         try:
             sql_query = f"""INSERT INTO Gr_prog ("{'", "'.join(columns)}") 
                             VALUES ("{'", "'.join(values)}");"""
-
-            print(sql_query)
             query = QSqlQuery(sql_query)
-
             if query.lastError().type() == QSqlError.ErrorType.NoError:
                 print('Новая строка успешно добавлена в таблицу Gr_prog')
-                # Обновляем отображение данных в таблице
-                self.parent.Gr_prog()
+                self.parent.model.select()  # Update the source model
+                new_row_data = column_values
+                new_row_index_source = -1
+                for row in range(self.parent.model.rowCount()):
+                    row_data = {self.parent.model.headerData(col, Qt.Orientation.Horizontal): self.parent.model.data(
+                        self.parent.model.index(row, col)) for col in range(self.parent.model.columnCount())}
+                    row_data['Код конк.'] = str(row_data.get('Код конк.', ''))
+                    new_row_data['Код конк.'] = str(new_row_data.get('Код конк.', ''))
+                    row_data['Код НИР'] = str(row_data.get('Код НИР', ''))
+                    new_row_data['Код НИР'] = str(new_row_data.get('Код НИР', ''))
+                    if row_data.get('Код конк.') == new_row_data.get('Код конк.') and row_data.get(
+                            'Код НИР') == new_row_data.get('Код НИР'):
+                        new_row_index_source = row
+                        break
+                self.parent.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
+                self.parent.customProxyModel.sort(1, Qt.SortOrder.AscendingOrder)
+                new_model_index_source = self.parent.model.index(new_row_index_source, 0)
+                new_model_index_proxy = self.parent.customProxyModel.mapFromSource(new_model_index_source)
+                self.parent.tableView.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+                self.parent.tableView.selectionModel().clearSelection()
+                self.parent.tableView.selectionModel().setCurrentIndex(new_model_index_proxy,QItemSelectionModel.SelectionFlag.Select)
+                self.parent.tableView.scrollTo(new_model_index_proxy)
                 QMessageBox.information(self, "Успех", "Новая запись была успешно добавлена в таблицу")
-
+                self.close()
             else:
                 print('Ошибка при добавлении строки в таблицу Gr_prog:', query.lastError().text())
         except Exception as error:
             print("Ошибка при добавлении строки в таблицу Gr_prog:", error)
-
-        self.parent.Gr_prog()
 
     def clear_input_fields(self):  # Очистить поля ввода, чтобы пользователь мог ввести новые данные
         buttonReply = QMessageBox.question(self, 'Подтвердите действие', "Вы действительно хотите очистить все поля?",
