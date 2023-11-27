@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView, QMessageBox,QAbstractItemView
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView, QMessageBox, QAbstractItemView
 from PyQt6 import uic
 from PyQt6.uic import loadUi
 from PyQt6.QtSql import *
@@ -20,8 +20,10 @@ class CustomSortProxyModel(QSortFilterProxyModel):
         super(CustomSortProxyModel, self).__init__()
 
     def lessThan(self, left, right):
-        left_data = [self.sourceModel().index(left.row(), col).data() for col in range(self.sourceModel().columnCount())]
-        right_data = [self.sourceModel().index(right.row(), col).data() for col in range(self.sourceModel().columnCount())]
+        left_data = [self.sourceModel().index(left.row(), col).data() for col in
+                     range(self.sourceModel().columnCount())]
+        right_data = [self.sourceModel().index(right.row(), col).data() for col in
+                      range(self.sourceModel().columnCount())]
 
         # Handle None values by considering them greater than any integer
         for i in range(len(left_data)):
@@ -36,6 +38,7 @@ class CustomSortProxyModel(QSortFilterProxyModel):
             return left_data[0] < right_data[0]
         else:
             return left_data[1] < right_data[1]
+
 
 class MainUI(QMainWindow):
     def __init__(self):
@@ -318,7 +321,6 @@ class AddUI(QMainWindow):
         self.ui.comboBox_4.addItems(vuzes)
         self.ui.textEdit.setPlainText(str(suggested_code))
 
-
     def handle_values(self):
 
         # colnames = [  # Comboboxes
@@ -331,9 +333,8 @@ class AddUI(QMainWindow):
         #     "Ученая степень", "Код вуза",
         #     "Наименование НИР"]
 
-
         colnames = ["tender_code", "vuz", "nir_code", "nir_chief", "plan_finance",
-                  "grnti_code", "chief_post", "scientific_rank", "scientific_degree", "vuz_code", "nir_title"]
+                    "grnti_code", "chief_post", "scientific_rank", "scientific_degree", "vuz_code", "nir_title"]
 
         # Comboboxes
         tender_code = self.ui.comboBox_3.currentText()
@@ -365,19 +366,28 @@ class AddUI(QMainWindow):
         REGEX_TO_VALIDATE = {
             'plan_finance': r'^[0-9]+$',
             'nir_chief': r'^[ а-яА-Я]+$',
+            # 'plan_finance': r'^0$'
             # 'grnti_code': r'^\d\d\.\d\d\.\d\d$'
         }
-        
-        REQUIRED_COLS = ['tender_code', 'vuz', 'plan_finance', 'nir_title']
+
+        REQUIRED_COLS = ['tender_code', 'vuz', 'nir_title']
 
         errors_message = ''
+
+        if 'plan_finance' in handled_values():
+            k = float(handled_values['plan_finance'])
+            if k > 0:
+                pass
+            else:
+                errors_message += 'Некорректное значение объёма финансирования;\n'
+
         for colname in REQUIRED_COLS:
             if colname not in handled_values:
                 errors_message += f'Не заполнено обязательное поле {colname};\n'
 
         for colname, colvalue in handled_values.items():
             regex = REGEX_TO_VALIDATE.get(colname, None)
-            
+
             if regex and not re.match(regex, colvalue):
                 errors_message += f'Ошибка ввода в колонке {colname};\n'
         if errors_message:
@@ -423,7 +433,8 @@ class AddUI(QMainWindow):
                 new_model_index_proxy = self.parent.customProxyModel.mapFromSource(new_model_index_source)
                 self.parent.tableView.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
                 self.parent.tableView.selectionModel().clearSelection()
-                self.parent.tableView.selectionModel().setCurrentIndex(new_model_index_proxy,QItemSelectionModel.SelectionFlag.Select)
+                self.parent.tableView.selectionModel().setCurrentIndex(new_model_index_proxy,
+                                                                       QItemSelectionModel.SelectionFlag.Select)
                 self.parent.tableView.scrollTo(new_model_index_proxy)
                 QMessageBox.information(self, "Успех", "Новая запись была успешно добавлена в таблицу")
                 self.close()
