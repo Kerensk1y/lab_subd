@@ -189,7 +189,7 @@
      <x>0</x>
      <y>0</y>
      <width>1083</width>
-     <height>26</height>
+     <height>18</height>
     </rect>
    </property>
    <widget class="QMenu" name="menudata">
@@ -204,6 +204,8 @@
     <property name="title">
      <string>Анализ</string>
     </property>
+    <addaction name="action"/>
+    <addaction name="action_2"/>
    </widget>
    <widget class="QMenu" name="menufinance">
     <property name="title">
@@ -253,9 +255,17 @@
     <string>Выйти из приложения</string>
    </property>
   </action>
+  <action name="action">
+   <property name="text">
+    <string>ВУЗы</string>
+   </property>
+  </action>
+  <action name="action_2">
+   <property name="text">
+    <string>НИР по субъектам</string>
+   </property>
+  </action>
  </widget>
- <resources>
-  <include location="sorting.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>
