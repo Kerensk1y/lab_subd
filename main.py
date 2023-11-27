@@ -320,15 +320,20 @@ class AddUI(QMainWindow):
 
 
     def handle_values(self):
-        colnames = [  # Comboboxes
-            "Код конк.", "Сокр-е наим-е ВУЗа",
 
-            # Text edits
-            "Код НИР", "Руководитель",
-            "План. объём финанс-я", "Код по ГРНТИ",
-            "Должность", "Звание",
-            "Ученая степень", "Код вуза",
-            "Наименование НИР"]
+        # colnames = [  # Comboboxes
+        #     "Код конк.", "Сокр-е наим-е ВУЗа",
+        #
+        #     # Text edits
+        #     "Код НИР", "Руководитель",
+        #     "План. объём финанс-я", "Код по ГРНТИ",
+        #     "Должность", "Звание",
+        #     "Ученая степень", "Код вуза",
+        #     "Наименование НИР"]
+
+
+        colnames = ["tender_code", "vuz", "nir_code", "nir_chief", "plan_finance",
+                  "grnti_code", "chief_post", "scientific_rank", "scientific_degree", "vuz_code", "nir_title"]
 
         # Comboboxes
         tender_code = self.ui.comboBox_3.currentText()
@@ -357,20 +362,38 @@ class AddUI(QMainWindow):
         handled_values = {colname: field for colname, field in zip(colnames, fields) if field}
         print(f'{handled_values=}')
 
-        # if len(handled_values) !=
+        REGEX_TO_VALIDATE = {
+            'plan_finance': r'^[0-9]+$',
+            'nir_chief': r'^[ а-яА-Я]+$',
+            # 'grnti_code': r'^\d\d\.\d\d\.\d\d$'
+        }
+        
+        REQUIRED_COLS = ['tender_code', 'vuz', 'plan_finance', 'nir_title']
 
-        # Display a confirmation message
-        confirmation = QMessageBox.question(
-            self,
-            "Подтвердите действие",
-            "Вы действительно хотите добавить запись в таблицу?",
-            buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
+        errors_message = ''
+        for colname in REQUIRED_COLS:
+            if colname not in handled_values:
+                errors_message += f'Не заполнено обязательное поле {colname};\n'
 
-        if confirmation == QMessageBox.StandardButton.Yes:
-            self.add_data(handled_values)
+        for colname, colvalue in handled_values.items():
+            regex = REGEX_TO_VALIDATE.get(colname, None)
+            
+            if regex and not re.match(regex, colvalue):
+                errors_message += f'Ошибка ввода в колонке {colname};\n'
+        if errors_message:
+            QMessageBox.warning(self, 'Warning!', errors_message)
         else:
-            QMessageBox.information(self, "Отмена", "Добавление записи отменено.")
+            confirmation = QMessageBox.question(
+                self,
+                "Подтвердите действие",
+                "Вы действительно хотите добавить запись в таблицу?",
+                buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+
+            if confirmation == QMessageBox.StandardButton.Yes:
+                self.add_data(handled_values)
+            else:
+                QMessageBox.information(self, "Отмена", "Добавление записи отменено.")
 
     def add_data(self, column_values: dict):
         columns, values = column_values.keys(), column_values.values()
@@ -474,7 +497,7 @@ class EditUI(QMainWindow):
                 'Звание': self.ui.textEdit_6.toPlainText(),
                 'Ученая степень': self.ui.textEdit_7.toPlainText(),
                 'План. объём финанс-я': self.ui.textEdit_8.toPlainText(),
-                'Наименование НИР': self.ui.textEdit_9.toPlainText(),
+                'Наименование НИР': self.ui.textEdit_9.toPlainText()
             }
 
             # Update the database with the edited data
