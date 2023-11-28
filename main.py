@@ -379,29 +379,72 @@ class AddUI(QMainWindow):
                   grnti_code, chief_post, scientific_rank, scientific_degree, vuz_code, nir_title]
 
         handled_values = {colname: field for colname, field in zip(colnames, fields) if field}
-        print(fields)
-        print(f'{handled_values}')
+        print(f'{handled_values=}')
 
-        print(handled_values.keys())
-        if not handled_values['Код конк.']:
-            QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Код конк."')
-        elif handled_values['Сокр-е наим-е ВУЗа'] == '':
-            QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Сокр-е наим-е ВУЗа"')
-        elif handled_values['Код по ГРНТИ'] == '..,..':
-            QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Код по ГРНТИ"')
-        elif not re.match(r'^[ а-яА-Я]+$', handled_values['Руководитель']):
-            QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Руководитель"')
-        elif not re.match(r'^[0-9]+$', handled_values['План. объём финанс-я']):
-            QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Плановый объём финансирования"')
+        REGEX_TO_VALIDATE = {
+            'plan_finance': r'^[0-9]+$',
+            'nir_chief': r'^[ а-яА-Я]+$',
+            # 'plan_finance': r'^0$'
+            # 'grnti_code': r'^\d\d\.\d\d\.\d\d$'
+        }
+
+        REQUIRED_COLS = ['tender_code', 'vuz', 'nir_title']
+
+        errors_message = ''
+
+        if 'plan_finance' in handled_values:
+            k = float(handled_values['plan_finance'])
+            if k > 0:
+                pass
+            else:
+                errors_message += 'Некорректное значение объёма финансирования;\n'
+
+        for colname in REQUIRED_COLS:
+            if colname not in handled_values:
+                errors_message += f'Не заполнено обязательное поле {colname};\n'
+
+        for colname, colvalue in handled_values.items():
+            regex = REGEX_TO_VALIDATE.get(colname, None)
+
+            if regex and not re.match(regex, colvalue):
+                errors_message += f'Ошибка ввода в колонке {colname};\n'
+        if errors_message:
+            QMessageBox.warning(self, 'Warning!', errors_message)
+        else:
+            confirmation = QMessageBox.question(
+                self,
+                "Подтвердите действие",
+                "Вы действительно хотите добавить запись в таблицу?",
+                buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+
+            if confirmation == QMessageBox.StandardButton.Yes:
+                self.add_data(handled_values)
+            else:
+                QMessageBox.information(self, "Отмена", "Добавление записи отменено.")
+
+
+
+        # print(handled_values.keys())
+        # if not handled_values['Код конк.']:
+        #     QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Код конк."')
+        # elif handled_values['Сокр-е наим-е ВУЗа'] == '':
+        #     QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Сокр-е наим-е ВУЗа"')
+        # elif handled_values['Код по ГРНТИ'] == '..,..':
+        #     QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Код по ГРНТИ"')
+        # elif not re.match(r'^[ а-яА-Я]+$', handled_values['Руководитель']):
+        #     QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Руководитель"')
+        # elif not re.match(r'^[0-9]+$', handled_values['План. объём финанс-я']):
+        #     QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Плановый объём финансирования"')
         # Display a confirmation message
 
-        message = QMessageBox(self)
-        message.setWindowTitle("Подтвердите действие")
-        message.setText("Вы действительно хотите добавить запись в таблицу?")
-        message.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        message.buttonClicked.connect(lambda x: self.add_data(x, handled_values))
-
-        message.show()
+        # message = QMessageBox(self)
+        # message.setWindowTitle("Подтвердите действие")
+        # message.setText("Вы действительно хотите добавить запись в таблицу?")
+        # message.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        # message.buttonClicked.connect(lambda x: self.add_data(x, handled_values))
+        #
+        # message.show()
 
     def add_data(self, button, column_values: dict):
         print('пришли в адд дата')
