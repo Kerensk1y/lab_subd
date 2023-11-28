@@ -1,17 +1,16 @@
-from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView, QMessageBox
+from PyQt6.QtWidgets import QHeaderView
 from PyQt6 import uic
 from PyQt6.uic import loadUi
 from PyQt6.QtSql import *
 import sys
-from PyQt6.uic.properties import QtWidgets
 from EditForm import Ui_EditWindow
 from AddForm import Ui_AddWindow
-from PyQt6.QtWidgets import QDialog, QFormLayout, QLabel, QLineEdit, QPushButton
-from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
 from typing import List
 from PyQt6.QtCore import Qt, QSortFilterProxyModel
 import re
-import sqlite3
+from vuz import *
+from sub import *
+from filter import *
 
 db_name = 'MyDb.db'
 
@@ -20,6 +19,10 @@ class CustomSortProxyModel(QSortFilterProxyModel):
     def __init__(self):
         super(CustomSortProxyModel, self).__init__()
         self.sorting_option = "По умолчанию"
+
+        self.analisys_window_v = None
+        self.analisys_window_s = None
+        self.filtration = None
 
     def setSortingOption(self, option):
         self.sorting_option = option
@@ -67,6 +70,7 @@ class MainUI(QMainWindow):
         self.action.triggered.connect(self.analiz_vuz)
         self.action_2.triggered.connect(self.analiz_sub)
         self.action_exit.triggered.connect(self.exit)
+        self.Filter.clicked.connect(self.filtr)
         self.Edit.clicked.connect(self.open_window_edit)
         self.Add.clicked.connect(self.open_window_add)
         self.Delete.clicked.connect(self.delete_selected_row)
@@ -194,139 +198,16 @@ class MainUI(QMainWindow):
         self.wAdd.show()
 
     def analiz_sub(self):
-        self.setWindowTitle("Таблица с данными из SQL")
-        self.setGeometry(100, 100, 800, 600)
-
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-
-        layout = QVBoxLayout()
-
-        self.table_widget = QTableWidget()
-        layout.addWidget(self.table_widget)
-
-        button = QPushButton("Обновить таблицу")
-        button.clicked.connect(self.update_table)
-        layout.addWidget(button)
-
-        central_widget.setLayout(layout)
-
-    def update_table(self):
-        connection = sqlite3.connect("MyDb.db")
-        cursor = connection.cursor()
-
-        sql_query = """
-                       SELECT 
-                 t."Субъект РФ",
-                 t."Кол-во Работ",
-                 t."Кол-во конкурсов",
-                 t."Объём финансирования"
-               FROM
-                 (SELECT 
-                   VUZ."Субъект РФ",
-                   COUNT(*) AS "Кол-во Работ",
-                   COUNT(DISTINCT Gr_prog."Код конк.") AS "Кол-во конкурсов",
-                   SUM(Gr_prog."План. объём финанс-я") AS "Объём финансирования"
-                 FROM 
-                   VUZ 
-                   JOIN Gr_prog ON VUZ."Сокр. наим-е ВУЗа" = Gr_prog."Сокр-е наим-е ВУЗа" 
-                 GROUP BY VUZ."Субъект РФ") t
-
-               UNION ALL
-
-               SELECT
-                 'Итого:' AS "Субъект РФ",
-                 COUNT(*) AS "Кол-во Работ",
-                 COUNT(DISTINCT "Код конк.") AS "Кол-во конкурсов",
-                 SUM("План. объём финанс-я") AS "Объём финансирования"
-               FROM "Gr_prog";
-               """
-
-        cursor.execute(sql_query)
-        result = cursor.fetchall()
-
-        self.table_widget.setRowCount(0)
-        self.table_widget.setColumnCount(len(result[0]))
-
-        header_labels = ["Субъект РФ", "Кол-во Работ", "Кол-во конкурсов", "Объём финансирования"]
-        self.table_widget.setHorizontalHeaderLabels(header_labels)
-
-        for row_num, row_data in enumerate(result):
-            self.table_widget.insertRow(row_num)
-            for col_num, col_data in enumerate(row_data):
-                item = QTableWidgetItem(str(col_data))
-                self.table_widget.setItem(row_num, col_num, item)
-
-        connection.close()
+        self.analisys_window_s = Analiz_sub()
+        self.analisys_window_s.show()
 
     def analiz_vuz(self):
-        self.setWindowTitle("Таблица с данными из SQL")
-        self.setGeometry(100, 100, 800, 600)
+        self.ananlisys_window_v = Analiz_vuz()
+        self.ananlisys_window_v.show()
 
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-
-        layout = QVBoxLayout()
-
-        self.table_widget = QTableWidget()
-        layout.addWidget(self.table_widget)
-
-        button = QPushButton("Обновить таблицу")
-        button.clicked.connect(self.update_table)
-        layout.addWidget(button)
-
-        central_widget.setLayout(layout)
-
-    def update_table(self):
-        # Убедитесь, что у вас есть соединение с вашей базой данных
-        # В данном примере используется SQLite
-        connection = sqlite3.connect('MyDb.db')
-        cursor = connection.cursor()
-
-        # Ваш SQL-запрос
-        sql_query = """SELECT
-                *
-                FROM
-                    (SELECT
-                        "Сокр-е наим-е ВУЗа" AS "ВУЗ",
-                        COUNT(*) AS "Кол-во НИР",
-                        SUM("План. объём финанс-я") AS "Сум. объём финанс-я",
-                        COUNT(DISTINCT "Код конк.") AS "Кол-во конк."
-                    FROM "Gr_prog"
-                    GROUP BY "Сокр-е наим-е ВУЗа"
-                    ORDER BY "Сокр-е наим-е ВУЗа") t
-                UNION ALL
-                SELECT
-                    'Итого:',
-                    COUNT(*),
-                    SUM("План. объём финанс-я"),
-                    COUNT(DISTINCT "Код конк.")
-                FROM "Gr_prog";
-                """
-
-        # Set header labels for the table columns
-        header_labels = ["ВУЗ", "Кол-во НИР", "Сум объём финанс", "Кол-во конк."]
-
-        self.table_widget.setColumnCount(len(header_labels))
-        self.table_widget.setHorizontalHeaderLabels(header_labels)
-
-        # Выполнение запроса
-        cursor.execute(sql_query)
-        result = cursor.fetchall()
-
-        # Очищение таблицы перед обновлением
-        self.table_widget.setRowCount(0)
-        self.table_widget.setColumnCount(len(result[0]))
-
-        # Заполнение таблицы результатами запроса
-        for row_num, row_data in enumerate(result):
-            self.table_widget.insertRow(row_num)
-            for col_num, col_data in enumerate(row_data):
-                item = QTableWidgetItem(str(col_data))
-                self.table_widget.setItem(row_num, col_num, item)
-
-        # Закрытие соединения
-        connection.close()
+    def filtr(self):
+        self.filtration = Filtrate()
+        self.filtration.show()
 
     def Gr_prog(self):
         Gr_prog = QSqlTableModel()
@@ -357,7 +238,7 @@ class MainUI(QMainWindow):
                 WHERE gr_konk.`Код конк.` = query1.code_konk;"""
 
         sql_request_kv1 = """UPDATE "gr_konk"
-SET "1 кв-л" = (SELECT SUM("1 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
+        SET "1 кв-л" = (SELECT SUM("1 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
         sql_request_kv2 = """UPDATE "gr_konk"
         SET "1 кв-л" = (SELECT SUM("2 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
         sql_request_kv3 = """UPDATE "gr_konk"
@@ -366,8 +247,7 @@ SET "1 кв-л" = (SELECT SUM("1 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Ко�
         SET "1 кв-л" = (SELECT SUM("4 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
 
         sql_request_fact_fin = """UPDATE "gr_konk"
-SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв-л" + "4 кв-л";
-"""
+        SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв-л" + "4 кв-л";"""
 
         query = QSqlQuery()
         query.exec(sql_request)
@@ -502,13 +382,6 @@ class AddUI(QMainWindow):
         print(fields)
         print(f'{handled_values}')
 
-        # if len(handled_values) !=
-
-        # errorrs = ['Ошибка! Некорректное значение в поле ']
-        # for col in handled_values:
-        #     if not validated:
-        #         erorrs.append(colname, )
-        # message_text = ';\n'.join(errors)
         print(handled_values.keys())
         if not handled_values['Код конк.']:
             QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Код конк."')
@@ -529,11 +402,6 @@ class AddUI(QMainWindow):
         message.buttonClicked.connect(lambda x: self.add_data(x, handled_values))
 
         message.show()
-
-        # if message == QMessageBox.StandardButton.Yes:
-        #     self.add_data(handled_values)
-        # else:
-        #     QMessageBox.information(self, "Отмена", "Добавление записи отменено.")
 
     def add_data(self, button, column_values: dict):
         print('пришли в адд дата')
