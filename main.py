@@ -1,221 +1,110 @@
-from PyQt6.QtWidgets import QHeaderView
+from PyQt6.QtWidgets import QApplication, QMainWindow, QStackedWidget, QHeaderView, QMessageBox,QAbstractItemView,QDialog, QFormLayout, QLabel, QLineEdit, QPushButton
 from PyQt6 import uic
 from PyQt6.uic import loadUi
 from PyQt6.QtSql import *
 import sys
+from PyQt6.uic.properties import QtWidgets
 from EditForm import Ui_EditWindow
 from AddForm import Ui_AddWindow
 from typing import List
-from PyQt6.QtCore import Qt, QSortFilterProxyModel
+from PyQt6.QtCore import Qt, QSortFilterProxyModel, QItemSelectionModel, pyqtSignal
 import re
 from vuz import *
 from sub import *
 from filter import *
-
 db_name = 'MyDb.db'
-
-
 class CustomSortProxyModel(QSortFilterProxyModel):
     def __init__(self):
         super(CustomSortProxyModel, self).__init__()
-        self.sorting_option = "По умолчанию"
-
-        self.analisys_window_v = None
-        self.analisys_window_s = None
-        self.filtration = None
-
-    def setSortingOption(self, option):
-        self.sorting_option = option
-
     def lessThan(self, left, right):
-        left_data = [self.sourceModel().index(left.row(), col).data() for col in (0, 1, 2, 3, 4)]
-        right_data = [self.sourceModel().index(right.row(), col).data() for col in (0, 1, 2, 3, 4)]
-
-        if left_data[0] is None or right_data[0] is None:
-            return False  # Handle None values as needed, for example, by placing them at the end
-
-        # Define custom sorting logic based on your criteria
-        if self.sorting_option == "По умолчанию":
-            return left_data[0] < right_data[0]
-        elif self.sorting_option == "Код конкурса + Код Нир":
-            if left_data[0] == right_data[0]:
-                return left_data[1] < right_data[1]
-            return left_data[0] < right_data[0]
-        elif self.sorting_option == "Название ВУЗа":
-            if left_data[3] is None or right_data[3] is None:
-                return False
-            return left_data[3] < right_data[3]
-        elif self.sorting_option == "Плановый об. финансирования":
-            if left_data[4] is None or right_data[4] is None:
-                return False
-            return left_data[4] < right_data[4]
-
-        return left_data[0] < right_data[0]
-
+        left_data_1 = self.sourceModel().index(left.row(), 0).data()
+        left_data_2 = self.sourceModel().index(left.row(), 1).data()
+        right_data_1 = self.sourceModel().index(right.row(), 0).data()
+        right_data_2 = self.sourceModel().index(right.row(), 1).data()
+        if left_data_1 != right_data_1:
+            return left_data_1 < right_data_1
+        else:
+            return left_data_2 < right_data_2
 
 class MainUI(QMainWindow):
     def __init__(self):
         super(MainUI, self).__init__()
         loadUi("MainForm.ui", self)
-
         self.setWindowTitle("Сопровождение конкурсов на соискание грантов")
-
+        self.customProxyModel = CustomSortProxyModel()
+        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.model = QSqlTableModel()
         self.model.setTable('Gr_prog')
         self.model.select()
-        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.Table_Gr_prog.triggered.connect(self.Gr_prog)
-        self.Table_gr_konk.triggered.connect(self.gr_konk)
-        self.Table_VUZ.triggered.connect(self.VUZ)
+        self.Table_Gr_prog.triggered.connect(lambda: self.switch_table('Gr_prog'))
+        self.Table_gr_konk.triggered.connect(lambda: self.switch_table('gr_konk'))
+        self.Table_VUZ.triggered.connect(lambda: self.switch_table('VUZ'))
         self.action.triggered.connect(self.analiz_vuz)
         self.action_2.triggered.connect(self.analiz_sub)
-        self.action_exit.triggered.connect(self.exit)
         self.Filter.clicked.connect(self.filtr)
+        self.action_exit.triggered.connect(self.exit)
         self.Edit.clicked.connect(self.open_window_edit)
         self.Add.clicked.connect(self.open_window_add)
         self.Delete.clicked.connect(self.delete_selected_row)
-        self.customProxyModel = CustomSortProxyModel()
+        self.current_table = 'Gr_prog'  # Initialize with the default table
+        self.model.setSort(0, Qt.SortOrder.AscendingOrder)  # Sort by the first column in ascending order
+        self.model.select()
+        self.switch_table('Gr_prog')  # Initialize with the default table
         self.customProxyModel.setSourceModel(self.model)
+        self.customProxyModel.setDynamicSortFilter(True)
         self.tableView.setModel(self.customProxyModel)
-        self.tableView.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.sortingbox.currentIndexChanged.connect(self.update_sorting_option)
-
-    def update_sorting_option(self):
-        sorting_option = self.sortingbox.currentText()
-
-        if sorting_option == "По умолчанию":
-            self.customProxyModel.setSortingOption("По умолчанию")
-            self.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
-
-        elif sorting_option == "Код конкурса + Код Нир":
-            self.customProxyModel.setSortingOption("Код конкурса + Код Нир")
-            self.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
-
-        elif sorting_option == "Название ВУЗа":
-            self.customProxyModel.setSortingOption("Название ВУЗа")
-            self.customProxyModel.sort(3, Qt.SortOrder.AscendingOrder)
-
-        elif sorting_option == "Плановый об. финансирования":
-            self.customProxyModel.setSortingOption("Плановый об. финансирования")
-            self.customProxyModel.sort(4, Qt.SortOrder.AscendingOrder)
-
-        # Обновите модель в представлении
-        self.tableView.setModel(self.customProxyModel)
-
-    def delete_selected_row(self):
-        selected_row = self.tableView.selectionModel().currentIndex().row()
-        if selected_row >= 0:
-            # Ask for confirmation
-            confirmation = QMessageBox.question(
-                self,
-                "Подтвердите действие",
-                "Вы уверены, что хотите удалить запись?",
-                buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-
-            if confirmation == QMessageBox.StandardButton.Yes:
-                source_model = self.customProxyModel.sourceModel()  # Получаем исходную модель
-                source_model.removeRow(selected_row)
-
-                if source_model.submitAll():
-                    QMessageBox.information(self, 'Успешно', 'Запись удалена.')
-                else:
-                    QMessageBox.warning(self, 'Ошибка', 'Не удалось удалить запись.')
-            else:
-                # User chose not to delete the record
-                QMessageBox.information(self, 'Отмена', 'Запись не удалена.')
-        else:
-            QMessageBox.warning(self, 'Ошибка', 'Ни одна строка не выбрана для удаления.')
-
-    def open_window_edit(self):
-        selected_row_index = self.tableView.selectionModel().currentIndex().row()
-        if selected_row_index >= 0:
-            selected_row_data = self.get_selected_row_data(selected_row_index)
-            self.wEdit = EditUI(self, selected_row_data)
-            self.wEdit.show()
-        else:
-            QMessageBox.warning(self, 'Ошибка', 'Ни одна строка не выбрана для редактирования.')
-
-    def get_selected_row_data(self, row_index):
-        row_data = {}
-        for col in range(self.model.columnCount()):
-            column_name = self.model.headerData(col, Qt.Orientation.Horizontal)
-            cell_data = self.model.data(self.model.index(row_index, col))
-            row_data[column_name] = cell_data
-        if re.findall(r'..\..*,(.*)', row_data["Код по ГРНТИ"]):
-            g1 = re.findall(r'(..\..*),.*', row_data["Код по ГРНТИ"])[0]
-            g2 = re.findall(r'..\..*,(.*)', row_data["Код по ГРНТИ"])[0]
-            print(f"{g1}\n{g2}")
-        else:
-            print(row_data["Код по ГРНТИ"])
-
-        return row_data
-
-    def update_selected_row(self, old_data, new_data):
-        # Update the database with new_data while keeping the primary key (e.g., "Код НИР") from old_data unchanged
-        # Construct and execute an SQL UPDATE statement to update the selected row in the database
-        # You can use QSqlQuery to execute the UPDATE statement
-
-        # After successfully updating the database, refresh the table view with the updated data
-        print(old_data)
-        print(new_data)
-        update_sql = f"""UPDATE Gr_prog
-                         SET "Код конк." =  {''},
-                             "Код НИР" = {''},
-                             "Сокр-е наим-е ВУЗа" = {''},
-                             "Код по ГРНТИ" = {''},
-                             "Руководитель" = {''},
-                             "Должность" = {''},
-                             "Звание" = {''},
-                             "Ученая степень" = {''},
-                             "План. объём финанс-я" = {''},
-                             "Наименование НИР" = {''},
-                         WHERE "Код конк." = {''};"""
-
-        query = QSqlQuery()
-        query.prepare(update_sql)
-        query.bindValue(0, new_data['textEdit_2'])
-        query.bindValue(1, new_data['textEdit'])
-        query.bindValue(2, new_data['textEdit_3'])
-        query.bindValue(3, new_data['textEdit_11'])
-        # query.bindValue(3, new_data['textEdit_10'])
-        query.bindValue(4, new_data['textEdit_4'])
-        query.bindValue(5, new_data['textEdit_5'])
-        query.bindValue(6, new_data['textEdit_6'])
-        query.bindValue(7, new_data['textEdit_7'])
-        query.bindValue(8, new_data['textEdit_8'])
-        query.bindValue(9, new_data['textEdit_9'])
-        query.bindValue(10, old_data['Код конк.'])
-
-        if query.exec():
-            QMessageBox.information(self, 'Успешно', 'Запись обновлена.')
-            self.model.select()  # Refresh the model after updating
-        else:
-            QMessageBox.warning(self, 'Ошибка', 'Не удалось обновить запись в базе данных.')
-
-    def open_window_add(self):
-        self.wAdd = AddUI(parent=self)
-        self.wAdd.show()
-
+        self.model.dataChanged.connect(self.sort_table)
+        self.model.rowsInserted.connect(self.sort_table)
+        self.model.rowsRemoved.connect(self.sort_table)
     def analiz_sub(self):
         self.analisys_window_s = Analiz_sub()
         self.analisys_window_s.show()
-
     def analiz_vuz(self):
         self.ananlisys_window_v = Analiz_vuz()
         self.ananlisys_window_v.show()
-
     def filtr(self):
         self.filtration = Filtrate()
         self.filtration.show()
+    def switch_table(self, table_name):
+        model = QSqlTableModel()
+        model.setTable(table_name)
+        model.select()
+        self.customProxyModel.setSourceModel(model)
+        self.customProxyModel.setDynamicSortFilter(True)
+        if table_name == 'Gr_prog':
+            self.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
+            self.tableView.setModel(self.customProxyModel)
+            self.tableView.sortByColumn(0, Qt.SortOrder.AscendingOrder)
+        else:
+            self.tableView.setModel(model)
 
-    def Gr_prog(self):
-        Gr_prog = QSqlTableModel()
-        Gr_prog.setTable('Gr_prog')
-        Gr_prog.select()
+    def showEvent(self, event):
+        super(MainUI, self).showEvent(event)
+        if self.current_table == 'Gr_prog':
+            self.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
+    def update_sorting_state(self):
+        sort_column = self.tableView.horizontalHeader().sortIndicatorSection()
+        sort_order = self.tableView.horizontalHeader().sortIndicatorOrder()
+        return sort_column, sort_order
+    def apply_table_model(self, model, sort_column, sort_order):
+        self.tableView.setSortingEnabled(False)  # Disable sorting temporarily
+        self.tableView.setModel(model)
+        if sort_column is not None and sort_order is not None:
+            self.tableView.sortByColumn(sort_column, sort_order)
+            self.customProxyModel.sort(sort_column, sort_order)
         self.tableView.setSortingEnabled(True)
-        self.tableView.setModel(Gr_prog)
-
+    def sort_table(self):
+        if self.current_table == 'Gr_prog':
+            current_sort_column = self.tableView.horizontalHeader().sortIndicatorSection()
+            current_sort_order = self.tableView.horizontalHeader().sortIndicatorOrder()
+            self.customProxyModel.sort(current_sort_column, current_sort_order)
+            self.tableView.sortByColumn(current_sort_column, current_sort_order)
+            self.sort_column_gr_prog = current_sort_column
+            self.sort_order_gr_prog = current_sort_order
+    def Gr_prog(self):
+        sort_column, sort_order = self.update_sorting_state()
+        self.switch_table('Gr_prog')
+        self.apply_table_model(self.customProxyModel, sort_column, sort_order)
     def gr_konk(self):
         gr_konk = QSqlTableModel()
         gr_konk.setTable('gr_konk')
@@ -238,7 +127,7 @@ class MainUI(QMainWindow):
                 WHERE gr_konk.`Код конк.` = query1.code_konk;"""
 
         sql_request_kv1 = """UPDATE "gr_konk"
-        SET "1 кв-л" = (SELECT SUM("1 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
+SET "1 кв-л" = (SELECT SUM("1 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
         sql_request_kv2 = """UPDATE "gr_konk"
         SET "1 кв-л" = (SELECT SUM("2 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
         sql_request_kv3 = """UPDATE "gr_konk"
@@ -247,8 +136,8 @@ class MainUI(QMainWindow):
         SET "1 кв-л" = (SELECT SUM("4 кв-л") FROM "Gr_prog" WHERE "gr_konk"."Код конк." = "Gr_prog"."Код конк.");"""
 
         sql_request_fact_fin = """UPDATE "gr_konk"
-        SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв-л" + "4 кв-л";"""
-
+SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв-л" + "4 кв-л";
+"""
         query = QSqlQuery()
         query.exec(sql_request)
         query.exec(sql_request2)
@@ -257,7 +146,6 @@ class MainUI(QMainWindow):
         query.exec(sql_request_kv3)
         query.exec(sql_request_kv4)
         query.exec(sql_request_fact_fin)
-
         if query.lastError().type() == QSqlError.ErrorType.NoError:
             print('Successfully updated!')
         else:
@@ -265,17 +153,94 @@ class MainUI(QMainWindow):
         gr_konk.select()
         self.tableView.setSortingEnabled(True)
         self.tableView.setModel(gr_konk)
-
     def VUZ(self):
-        VUZ = QSqlTableModel()
-        VUZ.setTable('VUZ')
-        VUZ.select()
-        self.tableView.setSortingEnabled(True)
-        self.tableView.setModel(VUZ)
+        self.switch_table('VUZ')
+    def delete_selected_row(self):
+        selected_row_proxy = self.tableView.selectionModel().currentIndex().row()
+        if selected_row_proxy >= 0:
+            selected_row_source = self.customProxyModel.mapToSource(
+                self.tableView.model().index(selected_row_proxy, 0)).row()
+            confirmation = QMessageBox.question(
+                self,
+                "Подтвердите действие",
+                "Вы уверены, что хотите удалить запись?",
+                buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if confirmation == QMessageBox.StandardButton.Yes:
+                source_model = self.customProxyModel.sourceModel()  # Get the source model
+                source_model.removeRow(selected_row_source)
+                if source_model.submitAll():
+                    QMessageBox.information(self, 'Успешно', 'Запись удалена.')
+                else:
+                    QMessageBox.warning(self, 'Ошибка', 'Не удалось удалить запись.')
+            else:
+                # User chose not to delete the record
+                QMessageBox.information(self, 'Отмена', 'Запись не удалена.')
+        else:
+            QMessageBox.warning(self, 'Ошибка', 'Ни одна строка не выбрана для удаления.')
 
+    def open_window_edit(self):
+        print("Open window edit called")  # Add this line
+        selected_index = self.tableView.selectionModel().currentIndex()
+        if selected_index.isValid():
+            row_data = {}
+            for column in range(self.model.columnCount()):
+                data = self.model.index(selected_index.row(), column).data()
+                header = self.model.headerData(column, Qt.Orientation.Horizontal)
+                row_data[header] = data
+            self.edit_window = EditUI(self, row_data)
+            self.edit_window.show()
+
+    def get_selected_row_data(self, row_index):
+        row_data = {}
+        for col in range(self.model.columnCount()):
+            column_name = self.model.headerData(col, Qt.Orientation.Horizontal)
+            cell_data = self.model.data(self.model.index(row_index, col))
+            row_data[column_name] = cell_data
+        if re.findall(r'..\..*,(.*)', row_data["Код по ГРНТИ"]):
+            g1 = re.findall(r'(..\..*),.*', row_data["Код по ГРНТИ"])[0]
+            g2 = re.findall(r'..\..*,(.*)', row_data["Код по ГРНТИ"])[0]
+            print(f"{g1}\n{g2}")
+        else:
+            print(row_data["Код по ГРНТИ"])
+        return row_data
+    def update_selected_row(self, old_data, new_data):
+        update_sql = f"""UPDATE Gr_prog
+                         SET "Код конк." =  {''},
+                             "Код НИР" = {''},
+                             "Сокр-е наим-е ВУЗа" = {''},
+                             "Код по ГРНТИ" = {''},
+                             "Руководитель" = {''},
+                             "Должность" = {''},
+                             "Звание" = {''},
+                             "Ученая степень" = {''},
+                             "План. объём финанс-я" = {''},
+                             "Наименование НИР" = {''},
+                         WHERE "Код конк." = {''};"""
+        query = QSqlQuery()
+        query.prepare(update_sql)
+        query.bindValue(0, new_data['textEdit_2'])
+        query.bindValue(1, new_data['textEdit'])
+        query.bindValue(2, new_data['textEdit_3'])
+        query.bindValue(3, new_data['textEdit_11'])
+        # query.bindValue(3, new_data['textEdit_10'])
+        query.bindValue(4, new_data['textEdit_4'])
+        query.bindValue(5, new_data['textEdit_5'])
+        query.bindValue(6, new_data['textEdit_6'])
+        query.bindValue(7, new_data['textEdit_7'])
+        query.bindValue(8, new_data['textEdit_8'])
+        query.bindValue(9, new_data['textEdit_9'])
+        query.bindValue(10, old_data['Код конк.'])
+        if query.exec():
+            QMessageBox.information(self, 'Успешно', 'Запись обновлена.')
+            self.model.select()  # Refresh the model after updating
+        else:
+            QMessageBox.warning(self, 'Ошибка', 'Не удалось обновить запись в базе данных.')
+    def open_window_add(self):
+        self.wAdd = AddUI(parent=self)
+        self.wAdd.show()
     def exit(self):
         sys.exit(-1)
-
     def connect_db(db_name):
         db = QSqlDatabase.addDatabase("QSQLITE")
         db.setDatabaseName(db_name)
@@ -283,20 +248,16 @@ class MainUI(QMainWindow):
             print("Невозможно установить соединение {}!".format(db_name))
             return False
         return db
-
     if not connect_db(db_name):
         sys.exit(-1)
     else:
         print("connection ok")
-
-
 class AddUI(QMainWindow):
     def __init__(self, parent):
         super().__init__()
         self.ui = Ui_AddWindow()
         self.ui.setupUi(self)
         self.parent = parent
-        # self.setAttribute(Qt.WidgetAttribute.)
         self.setWindowTitle("Добавление НИР")
         self.ui.pushButton.clicked.connect(self.handle_values)
         self.ui.pushButtonClear.clicked.connect(self.clear_input_fields)
@@ -305,7 +266,6 @@ class AddUI(QMainWindow):
         # Устанавливаем маски ввода
         self.ui.lineEdit_12.setInputMask("DD.DD.DD")
         self.ui.lineEdit_11.setInputMask("DD.DD.DD")
-
     def set_vuz_code_value(self, text):
         sql_query = f'SELECT "Код вуза" FROM VUZ WHERE "Сокр. наим-е ВУЗа" = "{text}"'
         query = QSqlQuery()
@@ -313,18 +273,15 @@ class AddUI(QMainWindow):
         query.next()
         vuz_code = query.value(0)
         self.ui.textEdit_2.setPlainText(str(vuz_code))
-
     @staticmethod
     def get_unique_values(column: str) -> List:
         sql_query = f'SELECT DISTINCT("{column}") FROM Gr_prog ORDER BY "{column}"'
         query = QSqlQuery()
         query.exec(sql_query)
-
         unique_values = ['']
         while query.next():
             unique_values.append(query.value(0))
         return unique_values
-
     @staticmethod
     def maxi_nir_code():
         sql_query = 'SELECT MAX("Код НИР") FROM "Gr_prog"'
@@ -333,32 +290,23 @@ class AddUI(QMainWindow):
         if query.next():
             suggested_code = query.value(0) + 1
         return suggested_code
-
     def set_default_values(self):
         tender_codes = [str(code) for code in self.get_unique_values('Код конк.')]
         vuzes = self.get_unique_values('Сокр-е наим-е ВУЗа')
         suggested_code = self.maxi_nir_code()
-
         self.ui.comboBox_3.addItems(tender_codes)
         self.ui.comboBox_4.addItems(vuzes)
         self.ui.textEdit.setPlainText(str(suggested_code))
-
     def handle_values(self):
         colnames = [  # Comboboxes
             "Код конк.", "Сокр-е наим-е ВУЗа",
-
-            # Text edits
             "Код НИР", "Руководитель",
             "План. объём финанс-я", "Код по ГРНТИ",
             "Должность", "Звание",
             "Ученая степень", "Код вуза",
             "Наименование НИР"]
-
-        # Comboboxes
         tender_code = self.ui.comboBox_3.currentText()
         vuz = self.ui.comboBox_4.currentText()
-
-        # Text edits
         nir_code = self.ui.textEdit.toPlainText()
         nir_chief = self.ui.textEdit_4.toPlainText()
         plan_finance = self.ui.textEdit_8.toPlainText()
@@ -374,40 +322,24 @@ class AddUI(QMainWindow):
         scientific_degree = self.ui.textEdit_7.toPlainText()
         vuz_code = self.ui.textEdit_2.toPlainText()
         nir_title = self.ui.textEdit_9.toPlainText()
-
         fields = [tender_code, vuz, nir_code, nir_chief, plan_finance,
                   grnti_code, chief_post, scientific_rank, scientific_degree, vuz_code, nir_title]
-
         handled_values = {colname: field for colname, field in zip(colnames, fields) if field}
         print(f'{handled_values=}')
-
         REGEX_TO_VALIDATE = {
-            'plan_finance': r'^[0-9]+$',
-            'nir_chief': r'^[ а-яА-Я]+$',
-            # 'plan_finance': r'^0$'
-            # 'grnti_code': r'^\d\d\.\d\d\.\d\d$'
+            'Руководитель': r'^[ а-яА-Я]+$',
         }
-
-        REQUIRED_COLS = ['tender_code', 'vuz', 'nir_title']
-
+        REQUIRED_COLS = ['Код конк.', 'Руководитель', 'Сокр-е наим-е ВУЗа', 'Наименование НИР']
         errors_message = ''
-
         if 'plan_finance' in handled_values:
             k = float(handled_values['plan_finance'])
             if k > 0:
                 pass
             else:
                 errors_message += 'Некорректное значение объёма финансирования;\n'
-
         for colname in REQUIRED_COLS:
             if colname not in handled_values:
                 errors_message += f'Не заполнено обязательное поле {colname};\n'
-
-        for colname, colvalue in handled_values.items():
-            regex = REGEX_TO_VALIDATE.get(colname, None)
-
-            if regex and not re.match(regex, colvalue):
-                errors_message += f'Ошибка ввода в колонке {colname};\n'
         if errors_message:
             QMessageBox.warning(self, 'Warning!', errors_message)
         else:
@@ -417,63 +349,48 @@ class AddUI(QMainWindow):
                 "Вы действительно хотите добавить запись в таблицу?",
                 buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
-
             if confirmation == QMessageBox.StandardButton.Yes:
-                self.add_data(handled_values)
+                self.add_data(self, handled_values)
             else:
                 QMessageBox.information(self, "Отмена", "Добавление записи отменено.")
-
-
-
-        # print(handled_values.keys())
-        # if not handled_values['Код конк.']:
-        #     QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Код конк."')
-        # elif handled_values['Сокр-е наим-е ВУЗа'] == '':
-        #     QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Сокр-е наим-е ВУЗа"')
-        # elif handled_values['Код по ГРНТИ'] == '..,..':
-        #     QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Код по ГРНТИ"')
-        # elif not re.match(r'^[ а-яА-Я]+$', handled_values['Руководитель']):
-        #     QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Руководитель"')
-        # elif not re.match(r'^[0-9]+$', handled_values['План. объём финанс-я']):
-        #     QMessageBox.warning(self, 'Ошибка! Введено некорректное значение поля "Плановый объём финансирования"')
-        # Display a confirmation message
-
-        # message = QMessageBox(self)
-        # message.setWindowTitle("Подтвердите действие")
-        # message.setText("Вы действительно хотите добавить запись в таблицу?")
-        # message.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        # message.buttonClicked.connect(lambda x: self.add_data(x, handled_values))
-        #
-        # message.show()
-
     def add_data(self, button, column_values: dict):
-        print('пришли в адд дата')
-        print(column_values)
         columns, values = column_values.keys(), column_values.values()
-
         try:
             sql_query = f"""INSERT INTO Gr_prog ("{'", "'.join(columns)}") 
                             VALUES ("{'", "'.join(values)}");"""
-
-            print(sql_query)
             query = QSqlQuery(sql_query)
-
             if query.lastError().type() == QSqlError.ErrorType.NoError:
                 print('Новая строка успешно добавлена в таблицу Gr_prog')
-                # Обновляем отображение данных в таблице
-                self.parent.Gr_prog()
+                self.parent.model.select()  # Update the source model
+                new_row_data = column_values
+                new_row_index_source = -1
+                for row in range(self.parent.model.rowCount()):
+                    row_data = {self.parent.model.headerData(col, Qt.Orientation.Horizontal): self.parent.model.data(
+                        self.parent.model.index(row, col)) for col in range(self.parent.model.columnCount())}
+                    row_data['Код конк.'] = str(row_data.get('Код конк.', ''))
+                    new_row_data['Код конк.'] = str(new_row_data.get('Код конк.', ''))
+                    row_data['Код НИР'] = str(row_data.get('Код НИР', ''))
+                    new_row_data['Код НИР'] = str(new_row_data.get('Код НИР', ''))
+                    if row_data.get('Код конк.') == new_row_data.get('Код конк.') and row_data.get(
+                            'Код НИР') == new_row_data.get('Код НИР'):
+                        new_row_index_source = row
+                        break
+                self.parent.customProxyModel.sort(0, Qt.SortOrder.AscendingOrder)
+                self.parent.customProxyModel.sort(1, Qt.SortOrder.AscendingOrder)
+                new_model_index_source = self.parent.model.index(new_row_index_source, 0)
+                new_model_index_proxy = self.parent.customProxyModel.mapFromSource(new_model_index_source)
+                self.parent.tableView.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+                self.parent.tableView.selectionModel().clearSelection()
+                self.parent.tableView.selectionModel().setCurrentIndex(new_model_index_proxy,QItemSelectionModel.SelectionFlag.Select)
+                self.parent.tableView.scrollTo(new_model_index_proxy)
                 QMessageBox.information(self, "Успех", "Новая запись была успешно добавлена в таблицу")
-
+                self.close()
             else:
                 print('Ошибка при добавлении строки в таблицу Gr_prog:', query.lastError().text())
         except Exception as error:
             print("Ошибка при добавлении строки в таблицу Gr_prog:", error)
-
-        self.parent.Gr_prog()
-
     def clear_input_fields(self):  # Очистить поля ввода, чтобы пользователь мог ввести новые данные
-        buttonReply = QMessageBox.question(self, 'Подтвердите действие', "Вы действительно хотите очистить все поля?",
-                                           buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        buttonReply = QMessageBox.question(self, 'Подтвердите действие', "Вы действительно хотите очистить все поля?",buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         if buttonReply == QMessageBox.StandardButton.Yes:
             self.ui.comboBox_3.setCurrentIndex(0)
             self.ui.comboBox_4.setCurrentIndex(0)
@@ -485,19 +402,25 @@ class AddUI(QMainWindow):
             self.ui.textEdit_9.clear()
             self.ui.lineEdit_12.clear()
             self.ui.lineEdit_11.clear()
-
-
 class EditUI(QMainWindow):
     def __init__(self, parent, row_data):
-        super(EditUI, self).__init__()
-        self.ui = Ui_EditWindow()
-        self.ui.setupUi(self)
-        self.parent = parent
-        self.row_data = row_data
-        self.setWindowTitle("Редактирование НИР")
-        self.populate_form_fields()
-        self.ui.pushButton.clicked.connect(self.update_data)
+        try:
+            super(EditUI, self).__init__()
+            self.ui = Ui_EditWindow()
+            self.ui.setupUi(self)
+            self.parent = parent
+            self.row_data = row_data
+            self.setWindowTitle("Редактирование НИР")
+            self.populate_form_fields()
+            self.ui.pushButton.clicked.connect(self.update_data)
+        except Exception as e:
+            print(f"Exception in EditUI __init__: {e}")
 
+    def setupUi(self, MainWindow):
+        try:
+            super().setupUi(MainWindow)
+        except Exception as e:
+            print(f"Exception in EditUI setupUi: {e}")
     def populate_form_fields(self):
         # self.ui.comboBox_3.setCurrentText(str(self.row_data.get('Код конк.', '')))
         self.ui.textEdit_2.setPlainText(str(self.row_data['Код конк.']))
@@ -511,8 +434,6 @@ class EditUI(QMainWindow):
         self.ui.textEdit_7.setPlainText(self.row_data['Ученая степень'])
         self.ui.textEdit_8.setPlainText(str(self.row_data['План. объём финанс-я']))
         self.ui.textEdit_9.setPlainText(self.row_data['Наименование НИР'])
-
-        # Connect the Push Button to an update function
         self.ui.pushButton.clicked.connect(self.update_data)
 
     def update_data(self):
@@ -522,14 +443,11 @@ class EditUI(QMainWindow):
             "Вы уверены, что хотите изменить данные?",
             buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
-
         if confirmation == QMessageBox.StandardButton.Yes:
             edited_data = {
-                # 'Код конк.': self.ui.comboBox_3.currentText(),
                 'Код конк.': self.ui.textEdit_2.toPlainText(),
                 'Код НИР': self.ui.textEdit.toPlainText(),
                 'Сокр-е наим-е ВУЗа': self.ui.textEdit_3.toPlainText(),
-                # 'Сокр-е наим-е ВУЗа': self.ui.comboBox_4.currentText(),
                 'Код по ГРНТИ': self.ui.textEdit_11.toPlainText(),
                 'Руководитель': self.ui.textEdit_4.toPlainText(),
                 'Должность': self.ui.textEdit_5.toPlainText(),
@@ -539,23 +457,27 @@ class EditUI(QMainWindow):
                 'Наименование НИР': self.ui.textEdit_9.toPlainText(),
             }
 
-            # Update the database with the edited data
-            row = self.parent.tableView.selectionModel().currentIndex().row()
-            if row >= 0:
-                for key, value in edited_data.items():
-                    column_index = self.parent.model.record().indexOf(key)
-                    if column_index != -1:
-                        self.parent.model.setData(self.parent.model.index(row, column_index), value)
+            # Получите индекс выделенной строки в отсортированной таблице
+            selected_index = self.parent.tableView.selectionModel().currentIndex()
 
-                if self.parent.model.submitAll():
-                    QMessageBox.information(self, 'Успешно', 'Запись обновлена.')
-                else:
-                    QMessageBox.warning(self, 'Ошибка', 'Не удалось обновить запись в базе данных.')
+            if selected_index.isValid():
+                # Получите соответствующий индекс в исходной модели
+                # Получите соответствующий индекс в исходной модели
+                # Получите соответствующий индекс в исходной модели
+                source_index = self.parent.customProxyModel.mapToSource(selected_index)
+
+                # Обновите данные в исходной модели для каждого столбца
+                for column, value in edited_data.items():
+                    column_index = self.parent.model.fieldIndex(column)  # Convert column name to index
+                    source_index_column = source_index.sibling(source_index.row(), column_index)
+                    self.parent.model.setData(source_index_column, value, role=Qt.EditRole)
+
+                # Сигнал для пересортировки таблицы
+                self.parent.sort_table()
+
+                # Уведомление об успешном обновлении записи
+                QMessageBox.information(self, 'Успешно', 'Запись обновлена.')
                 self.close()
-            else:
-                QMessageBox.warning(self, 'Ошибка', 'Ни одна строка не выбрана для редактирования.')
-        else:
-            QMessageBox.information(self, "Отмена", "Изменение данных отменено.")
 
 
 if __name__ == '__main__':
