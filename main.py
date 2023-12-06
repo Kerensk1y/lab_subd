@@ -16,11 +16,17 @@ db_name = 'MyDb.db'
 class CustomSortProxyModel(QSortFilterProxyModel):
     def __init__(self):
         super(CustomSortProxyModel, self).__init__()
+
     def lessThan(self, left, right):
         left_data_1 = self.sourceModel().index(left.row(), 0).data()
         left_data_2 = self.sourceModel().index(left.row(), 1).data()
         right_data_1 = self.sourceModel().index(right.row(), 0).data()
         right_data_2 = self.sourceModel().index(right.row(), 1).data()
+
+        # Check for None values and handle them appropriately
+        if left_data_1 is None or right_data_1 is None:
+            return False  # or handle as needed
+
         if left_data_1 != right_data_1:
             return left_data_1 < right_data_1
         else:
@@ -180,16 +186,33 @@ SET "Факт. объем финанс-я" = "1 кв-л" + "2 кв-л" + "3 кв
             QMessageBox.warning(self, 'Ошибка', 'Ни одна строка не выбрана для удаления.')
 
     def open_window_edit(self):
-        print("Open window edit called")  # Add this line
-        selected_index = self.tableView.selectionModel().currentIndex()
-        if selected_index.isValid():
+        print("Open window edit called")
+        selected_index_proxy = self.tableView.selectionModel().currentIndex()
+        selected_index_source = self.customProxyModel.mapToSource(selected_index_proxy)
+
+        if selected_index_source.isValid():
             row_data = {}
             for column in range(self.model.columnCount()):
-                data = self.model.index(selected_index.row(), column).data()
+                data = self.model.index(selected_index_source.row(), column).data()
                 header = self.model.headerData(column, Qt.Orientation.Horizontal)
                 row_data[header] = data
+
+            # Pass the row_data to the EditUI constructor
             self.edit_window = EditUI(self, row_data)
+            self.edit_window.editApplied.connect(self.handle_edit_applied)
             self.edit_window.show()
+
+    def handle_edit_applied(self):
+        sort_column, sort_order = self.update_sorting_state()
+        self.switch_table(self.current_table)
+        self.apply_table_model(self.customProxyModel, sort_column, sort_order)
+
+        # Set the cursor to the edited row
+        edited_index = self.customProxyModel.index(
+            self.edit_window.edited_row, 0)
+        self.tableView.selectionModel().setCurrentIndex(
+            edited_index, QItemSelectionModel.SelectionFlag.Select)
+        self.tableView.scrollTo(edited_index)
 
     def get_selected_row_data(self, row_index):
         row_data = {}
@@ -403,6 +426,8 @@ class AddUI(QMainWindow):
             self.ui.lineEdit_12.clear()
             self.ui.lineEdit_11.clear()
 class EditUI(QMainWindow):
+    editApplied = pyqtSignal()
+
     def __init__(self, parent, row_data):
         try:
             super(EditUI, self).__init__()
@@ -411,22 +436,19 @@ class EditUI(QMainWindow):
             self.parent = parent
             self.row_data = row_data
             self.setWindowTitle("Редактирование НИР")
+
+            # Populate the UI fields with the selected row's data
             self.populate_form_fields()
-            self.ui.pushButton.clicked.connect(self.update_data)
+
+            # Connect the button click to the edit_applied method
+            self.ui.pushButton.clicked.connect(self.edit_applied)
         except Exception as e:
             print(f"Exception in EditUI __init__: {e}")
 
-    def setupUi(self, MainWindow):
-        try:
-            super().setupUi(MainWindow)
-        except Exception as e:
-            print(f"Exception in EditUI setupUi: {e}")
     def populate_form_fields(self):
-        # self.ui.comboBox_3.setCurrentText(str(self.row_data.get('Код конк.', '')))
         self.ui.textEdit_2.setPlainText(str(self.row_data['Код конк.']))
         self.ui.textEdit.setPlainText(str(self.row_data['Код НИР']))
         self.ui.textEdit_3.setPlainText(str(self.row_data['Сокр-е наим-е ВУЗа']))
-        # self.ui.comboBox_4.setCurrentText(self.row_data.get('Сокр-е наим-е ВУЗа', ''))
         self.ui.textEdit_11.setPlainText(str(self.row_data['Код по ГРНТИ']))
         self.ui.textEdit_4.setPlainText(self.row_data['Руководитель'])
         self.ui.textEdit_5.setPlainText(self.row_data['Должность'])
@@ -434,50 +456,50 @@ class EditUI(QMainWindow):
         self.ui.textEdit_7.setPlainText(self.row_data['Ученая степень'])
         self.ui.textEdit_8.setPlainText(str(self.row_data['План. объём финанс-я']))
         self.ui.textEdit_9.setPlainText(self.row_data['Наименование НИР'])
-        self.ui.pushButton.clicked.connect(self.update_data)
 
-    def update_data(self):
-        confirmation = QMessageBox.question(
-            self,
-            "Подтвердите действие",
-            "Вы уверены, что хотите изменить данные?",
-            buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if confirmation == QMessageBox.StandardButton.Yes:
-            edited_data = {
-                'Код конк.': self.ui.textEdit_2.toPlainText(),
-                'Код НИР': self.ui.textEdit.toPlainText(),
-                'Сокр-е наим-е ВУЗа': self.ui.textEdit_3.toPlainText(),
-                'Код по ГРНТИ': self.ui.textEdit_11.toPlainText(),
-                'Руководитель': self.ui.textEdit_4.toPlainText(),
-                'Должность': self.ui.textEdit_5.toPlainText(),
-                'Звание': self.ui.textEdit_6.toPlainText(),
-                'Ученая степень': self.ui.textEdit_7.toPlainText(),
-                'План. объём финанс-я': self.ui.textEdit_8.toPlainText(),
-                'Наименование НИР': self.ui.textEdit_9.toPlainText(),
-            }
+    def edit_applied(self):
+        # Get the edited data from the UI
+        edited_data = {
+            'Наименование НИР': self.ui.lineEdit_NIR.text(),
+            'Должность руководителя': self.ui.lineEdit_position.text(),
+            'Код конкурса': self.ui.lineEdit_code.text(),
+            'ВУЗ': self.ui.lineEdit_VUZ.text(),
+            'Код ГРНТИ': self.ui.lineEdit_GRNTI.text(),
+            'Руководитель НИР': self.ui.lineEdit_director.text(),
+            'Ученое звание руководителя': self.ui.lineEdit_title.text(),
+            'И/Или': self.ui.lineEdit_and_or.text(),
+            'Плановое финансирование': self.ui.lineEdit_funding.text(),
+            'Код НИР': self.ui.lineEdit_NIR_code.text(),
+            'Ученая степень руководителя': self.ui.lineEdit_degree.text()
+        }
 
-            # Получите индекс выделенной строки в отсортированной таблице
-            selected_index = self.parent.tableView.selectionModel().currentIndex()
+        # Assume that 'id' is the primary key of your table
+        row_id = self.row_data.get('id', None)
 
-            if selected_index.isValid():
-                # Получите соответствующий индекс в исходной модели
-                # Получите соответствующий индекс в исходной модели
-                # Получите соответствующий индекс в исходной модели
-                source_index = self.parent.customProxyModel.mapToSource(selected_index)
+        # Construct the SQL query to update the database
+        query = QSqlQuery()
+        query.prepare("""
+            UPDATE YourTableName
+            SET
+                `Наименование НИР` = :name,
+                `Должность руководителя` = :position,
+                `Код конкурса` = :code,
+                -- Add other fields here
+            WHERE id = :id
+        """)
+        query.bindValue(':name', edited_data['Наименование НИР'])
+        query.bindValue(':position', edited_data['Должность руководителя'])
+        query.bindValue(':code', edited_data['Код конкурса'])
+        # Bind other values as needed
+        query.bindValue(':id', row_id)
 
-                # Обновите данные в исходной модели для каждого столбца
-                for column, value in edited_data.items():
-                    column_index = self.parent.model.fieldIndex(column)  # Convert column name to index
-                    source_index_column = source_index.sibling(source_index.row(), column_index)
-                    self.parent.model.setData(source_index_column, value, role=Qt.EditRole)
-
-                # Сигнал для пересортировки таблицы
-                self.parent.sort_table()
-
-                # Уведомление об успешном обновлении записи
-                QMessageBox.information(self, 'Успешно', 'Запись обновлена.')
-                self.close()
+        if query.exec():
+            print("Edit applied successfully")
+            self.editApplied.emit()
+            self.close()
+        else:
+            print("Error applying edit:", query.lastError().text())
+            QMessageBox.critical(self, "Error", "Failed to apply edit.")
 
 
 if __name__ == '__main__':
